@@ -6,8 +6,6 @@ from datetime import datetime
 
 expense_bp = Blueprint("expense_bp", __name__)
 
-# CREATE Expense
-from datetime import datetime
 
 @expense_bp.route("/expense", methods=["POST"])
 @jwt_required()

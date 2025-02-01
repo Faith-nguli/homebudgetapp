@@ -2,7 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* app.css */
 
 /* General Styles */
 body {
@@ -40,11 +39,12 @@ nav {
   position: sticky; /* Stays at the top */
   top: 0; /* Stick to the top */
   z-index: 10; /* Ensure it's above other content */
+  width: 100%; /* Ensure the nav takes the full width */
 }
 
 nav .space-x-4 {
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-end; /* Align buttons to the right */
   margin-right: 2rem;
   gap: 1rem;
 }
@@ -59,14 +59,18 @@ nav button {
   color: white;
 }
 
-
-
-
 nav button:hover { /* Hover effect for buttons */
   transform: translateY(-2px); /* Move up slightly on hover */
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15); /* Increase shadow on hover */
-
 }
+
+/* Logo and Home Budget Styles */
+.navbar-content {
+  display: flex;
+  align-items: center;
+  margin-left: 2rem;
+}
+
 
 /* Logo and Home Budget Styles */
 .navbar-content {
@@ -86,7 +90,7 @@ nav button:hover { /* Hover effect for buttons */
   font-weight: 600;
   color: #333;
 }
-/* ... rest of your CSS ... */
+
 /* Hero Section (Main Content) */
 .hero {
   flex-grow: 1; /* Take up available space */
@@ -352,222 +356,480 @@ nav button:hover { /* Hover effect for buttons */
   text-decoration: underline;
 }
 
-/* Dashboard Styles */
+/* 🌟 General Layout */
 .dashboard-container {
-  display: flex;
-  flex-wrap: wrap; /* Allow items to wrap */
-  gap: 2rem; /* Spacing between items */
-  padding: 2rem;
+  min-height: 100vh;
+  background-color: #f3f4f6; /* Light gray background */
+  padding: 1.5rem;
 }
 
-.expenses-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Responsive grid */
-  gap: 2rem;
-  flex: 1; /* Takes up available space */
-}
-
-.expense-item {
-  border-radius: 0.8rem;
-  overflow: hidden; /* Hide content that overflows rounded corners */
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s ease; /* Smooth hover effect */
-}
-
-.expense-item:hover {
-  transform: scale(1.02); /* Slightly enlarge on hover */
-}
-
-.expense-image {
-  width: 100%;
-  height: 350px; /* Adjust as needed */
-  object-fit: cover; /* Maintain aspect ratio and cover container */
-}
-
-.expense-details {
-  padding: 1rem;
-  text-align: center;
-}
-
-.expense-category {
-  font-size: 1.2rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-}
-
-.expense-amount {
-  font-size: 1rem;
-  color: #555;
-}
-
-.view-button {
-  background-color: #595959; /* Blue button */
-  color: #fff;
-  padding: 0.6rem 1rem;
-  border: none;
-  border-radius: 0.3rem;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.view-button:hover {
-  background-color: #0056b3; /* Darker blue on hover */
-}
-
-.summary-panel {
-  flex: 1; /* Takes up available space */
-  border: 1px solid #ddd;
-  padding: 2rem;
-  border-radius: 0.8rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-
+/* 🔥 Header Section */
 .dashboard-header {
-  position: absolute; /* or 'fixed' if you want it to stay on scroll */
-  top: 4rem; /* Distance from the top */
-  right: 1rem; /* Distance from the right */
   display: flex;
-  align-items: center; /* Vertically center */
-  gap: 1.5rem; /* Space between buttons */
-  padding: 1rem 2rem; /* Add padding around the header */
-}
-
-
-.dashboard-header button {
-  padding: 0.75rem 1.25rem; /* Adjusted padding */
-  border: none;
-  border-radius: 0.5rem; /* More rounded corners */
-  cursor: pointer;
-  font-weight: 500;
-  transition: background-color 0.2s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Add a subtle shadow */
-}
-
-.add-budget-button {
-  background-color: #595959; 
-  color: white;
-}
-
-.profile-button {
-  background-color: #595959; 
-  color: white;
-}
-
-.logout-button {
-  background-color: #595959; /* Red */
-  color: white;
-}
-
-.dashboard-header button:hover {
-  opacity: 0.9; /* Slightly less transparent on hover */
-  transform: translateY(-2px); /* Move up slightly on hover */
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15); /* Increased shadow on hover */
-}
-
-.profile-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  position: relative; /* Ensures child elements can use absolute positioning */
-}
-
-.profile-container header {
-  width: 100%;
-  display: flex;
-  justify-content: space-between; /* Moves nav to the right */
-  align-items: center;
-  padding: 1rem;
-  position: relative;
-}
-
-.profile-container .logo-icon {
-  display: flex;
-  align-items: center;
-}
-
-.profile-container nav {
-  display: flex;
-  gap: 1rem;
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-}
-
-.profile-container nav button {
-  padding: 0.6rem 1rem;
-  border: none;
-  border-radius: 0.3rem;
-  background-color: #555;
-  color: white;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.profile-container nav button:hover {
-  background-color: #444;
-}
-
-
-/* Main Content Styles */
-.profile-container main {
-  flex: 1; /* Allow main to take up available space */
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 2rem;
-}
-
-.profile-container .user-info {
-  display: flex;
-  flex-direction: column;
+  justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
 }
 
-.profile-container .user-info img {
-  width: 150px;
-  height: 150px;
-  border-radius: 50%; /* Make it circular */
-  object-fit: cover;
-  margin-bottom: 1rem;
-  border: 4px solid white; /* Add a white border */
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.dashboard-title {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #1f2937;
 }
 
-.profile-container .user-details {
+/* 🟢 Buttons Styling */
+.dashboard-buttons {
+  display: flex;
+  gap: 25rem;
+}
+
+.dashboard-button {
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  font-weight: bold;
+  color: white; /* Text color for all buttons */
+  transition: background 0.3s ease-in-out, transform 0.2s ease; /* Smooth transition */
+  cursor: pointer;
+}
+
+.dashboard-button:hover {
+  transform: scale(1.05); /* Slightly enlarge on hover */
+}
+
+/* 🎨 Button Variants */
+.add-budget {
+  background-color: #595959; /* Green */
+}
+
+.add-budget:hover {
+  background-color: #DDDDDD; /* Darker green */
+}
+
+.profile {
+  background-color: #595959; /* Gray */
+}
+
+.profile:hover {
+  background-color: #DDDDDD; /* Darker gray */
+}
+
+.logout {
+  background-color: #595959; /* Red */
+}
+
+.logout:hover {
+  background-color: #DDDDDD; /* Darker red */
+}
+
+
+/* 🟢 Button Styling for View Details */
+.dashboard-button-view-details {
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  font-weight: bold;
+  color: black; /* Text color for button */
+  background-color: #DDDDDD; /* Green */
+  transition: background 0.3s ease-in-out, transform 0.2s ease; /* Smooth transition */
+  cursor: pointer;
+  width: 10%; /* Full width button */
+  margin-top: 0.75rem; /* Space on top (mt-3) */
+}
+
+.dashboard-button-view-details:hover {
+  background-color: #DDDDDD; /* Darker green on hover */
+  transform: scale(1.05); /* Slightly enlarge on hover */
+}
+
+/* Optional: For specific buttons, if you want to add more focus or color variations */
+.dashboard-button-view-details:focus {
+  outline: 2px solid #DDDDDD; /* Add outline to focus state */
+}
+
+
+
+📌 Budget Cards
+.budget-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.budget-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
   text-align: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease-in-out;
 }
 
-.profile-container .user-details p {
-  margin: 0.5rem 0;
-  font-size: 1.1rem;
+.budget-card:hover {
+  transform: translateY(-5px);
+}
+
+/* 🖼️ Budget Images */
+.budget-card img {
+  width: 80px;
+  height: 80px;
+  margin-bottom: 1rem;
+  border-radius: 50%;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 📊 Expense Summary */
+.expense-summary {
+  margin-top: 3rem;
+  padding: 2rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  max-width: 600px; /* Optional: Set a max-width for the summary */
+  margin-left: auto; /* Automatically aligns to the right */
+  margin-right: 0; /* Ensures no extra space on the right */
+}
+
+.expense-summary h2 {
+  font-size: 54rem;
+  font-weight: bold;
+  color: #1f2937;
+  margin-bottom: 1rem;
+}
+
+.total-expense {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: #2563eb;
+}
+
+/* 📶 Progress Bar */
+.progress-bar-container {
+  background: #e5e7eb;
+  height: 8px;
+  border-radius: 8px;
+  margin-top: 5px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: #3b82f6;
+  transition: width 0.5s ease-in-out;
 }
 
 
-/* Footer Styles */
-.profile-container footer {
+/* Profile Page Container */
+.profile-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+/* Base Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f3f4f6;
+  color: #333;
+}
+
+/* Profile Container */
+.profile-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 20px;
+  background-color: #f3f4f6;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  margin-bottom: 2rem;
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+}
+
+nav {
+  display: flex;
+  gap: 1rem;
+}
+
+.btn {
+  padding: 0.8rem 1.6rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+}
+
+.dashboard-btn {
+  background-color: #4A90E2; /* Blue */
+  color: white;
+}
+
+.dashboard-btn:hover {
+  background-color: #357ABD;
+}
+
+.logout-btn {
+  background-color: #E94E77; /* Red */
+  color: white;
+}
+
+.logout-btn:hover {
+  background-color: #D62C5E;
+}
+
+/* Global Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f3f4f6;
+  color: #333;
+}
+
+/* Global Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f3f4f6;
+  color: #333;
+}
+
+/* Profile Container */
+.profile-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 20px;
+  background-color: #f3f4f6;
+}
+
+/* Header */
+.header {
+  padding: 1rem 2rem;
+  background-color: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  margin-bottom: 2rem;
+  display: flex;
+  justify-content: flex-start; /* Align content to the left */
+  align-items: center;
+  position: relative; /* Allow absolute positioning for buttons */
+}
+
+.nav {
+  position: absolute; /* Position buttons absolutely */
+  top: 1rem; /* Distance from top */
+  right: 2rem; /* Distance from right */
+  display: flex;
+  gap: 1rem;
+}
+
+.btn {
+  padding: 0.8rem 1.6rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+}
+
+.dashboard-btn {
+  background-color: #4A90E2; /* Blue */
+  color: white;
+}
+
+.dashboard-btn:hover {
+  background-color: #357ABD;
+}
+
+.logout-btn {
+  background-color: #E94E77; /* Red */
+  color: white;
+}
+
+.logout-btn:hover {
+  background-color: #D62C5E;
+}
+
+/* Main Profile Card */
+.main-content {
   display: flex;
   justify-content: center;
-  padding: 1rem 2rem;
-  background-color: #DDDDDD;
-  border-top: 1px solid #ddd;
+  margin-top: 3rem;
 }
 
-.profile-container footer button {
-  padding: 0.6rem 1rem;
-  border: none;
-  border-radius: 0.3rem;
-  background-color: #555;
-  color: #DDDDDD;
+.profile-card {
+  background-color: #ffffff;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 600px;
+}
+
+.profile-header {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.profile-pic {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid #4A90E2; /* Blue border around the picture */
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-name {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #333;
+}
+
+.user-email {
+  font-size: 1rem;
+  color: #4A90E2; /* Link color */
+}
+
+/* Buttons Container */
+.buttons-container {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.edit-btn,
+.delete-btn {
+  padding: 0.8rem 1.6rem;
+  border-radius: 8px;
+  font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s ease;
-  margin: 0 0.5rem; /* Add space between buttons */
+  font-size: 1rem;
+  width: 48%;
+  transition: background-color 0.3s ease;
 }
 
-.profile-container footer button:hover {
-  background-color: #444;
+.edit-btn {
+  background-color: #A3BFFA; /* Light blue */
+  color: white;
 }
+
+.edit-btn:hover {
+  background-color: #4A90E2;
+}
+
+.delete-btn {
+  background-color: #E94E77; /* Red */
+  color: white;
+}
+
+.delete-btn:hover {
+  background-color: #D62C5E;
+}
+
+
+
+
+.add-budget-form {
+  max-width: 500px;
+  margin: 40px auto;
+  padding: 20px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  font-family: 'Poppins', sans-serif;
+}
+
+.add-budget-form h2 {
+  text-align: center;
+  color: #333;
+  margin-bottom: 20px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+label {
+  font-weight: 600;
+  display: block;
+  margin-bottom: 5px;
+  color: #555;
+}
+
+input, select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 16px;
+  transition: 0.3s;
+}
+
+input:focus, select:focus {
+  border-color: #007bff;
+  outline: none;
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 12px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.submit-btn:hover {
+  background: #0056b3;
+}
+
+img {
+  display: block;
+  margin-top: 10px;
+  border-radius: 5px;
+}
+
+
+
 
 
 

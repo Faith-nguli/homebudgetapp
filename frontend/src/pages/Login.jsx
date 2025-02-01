@@ -2,21 +2,21 @@ import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import { UserContext } from "../context/userContext"; 
-import { toast } from "react-toastify"; // Import toast notifications
+import { toast } from "react-toastify";
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login } = useContext(UserContext); // Access login function from context
+  const userContext = useContext(UserContext); // Get context
+  const { setUser } = userContext || {}; // Ensure setUser exists
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  
-  const handleRegisterClick = () => navigate("/register");
 
   const togglePasswordVisibility = () => setShowPassword((prev) => !prev);
 
   const handleSubmit = async (e) => {
-    e.preventDefault(); // Prevent page refresh
+    e.preventDefault();
 
     if (!email || !password) {
       toast.error("Please enter both email and password.");
@@ -24,10 +24,33 @@ export default function Login() {
     }
 
     try {
-      await login(email, password); // Call login function from context
+      const response = await fetch("http://127.0.0.1:5000/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        localStorage.setItem("token", data.data.access_token);
+
+        if (setUser) {
+          setUser(data.data.user); // Ensure setUser exists before calling it
+        } else {
+          console.warn("setUser is not available in UserContext");
+        }
+
+        toast.success("Login successful!");
+        navigate("/dashboard");
+      } else {
+        toast.error(data.message || "Invalid credentials.");
+      }
     } catch (error) {
       console.error("Login failed:", error);
-      toast.error("Invalid credentials or server error.");
+      toast.error("Server error. Please try again.");
     }
   };
 
@@ -77,8 +100,8 @@ export default function Login() {
         </button>
 
         <div className="login-link">
-          Don't have an account?
-          <span className="login-link-text" onClick={handleRegisterClick}>
+          Don't have an account?{" "}
+          <span className="login-link-text" onClick={() => navigate("/register")}>
             Register
           </span>
         </div>

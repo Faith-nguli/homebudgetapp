@@ -11,7 +11,7 @@ const defaultUserContext = {
   deleteUser: async () => {},
 };
 
-// Create the context
+// Create UserContext
 export const UserContext = createContext(defaultUserContext);
 
 export const UserProvider = ({ children }) => {
@@ -21,15 +21,13 @@ export const UserProvider = ({ children }) => {
 
   const fetchCurrentUser = async (token) => {
     try {
-      const res = await fetch(`http://127.0.0.1:5000/user`, {
+      const res = await fetch("http://127.0.0.1:5000/user", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
-
-      console.log("Fetching current user:", res);
 
       if (!res.ok) {
         if (res.status === 401) {
@@ -54,7 +52,7 @@ export const UserProvider = ({ children }) => {
     const toastId = toast.loading("Logging you in...");
 
     try {
-      const response = await fetch(`http://127.0.0.1:5000/login`, {
+      const response = await fetch("http://127.0.0.1:5000/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -68,7 +66,6 @@ export const UserProvider = ({ children }) => {
       }
 
       const responseData = await response.json();
-
       if (responseData.access_token) {
         sessionStorage.setItem("token", responseData.access_token);
         setAuthToken(responseData.access_token);
@@ -81,7 +78,7 @@ export const UserProvider = ({ children }) => {
           autoClose: 2000,
         });
 
-        navigate("/dashboard");
+        setTimeout(() => navigate("/dashboard"), 500);
       } else {
         throw new Error("No access token received from the server.");
       }
@@ -101,48 +98,48 @@ export const UserProvider = ({ children }) => {
     setAuthToken(null);
     setCurrentUser(null);
     toast.info("Logged out successfully");
-    navigate("/login");
+    setTimeout(() => navigate("/login"), 500);
   };
 
   const addUser = async (username, email, password) => {
     const toastId = toast.loading("Registering you...");
-  
     try {
       const response = await fetch("http://127.0.0.1:5000/user", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ username, email, password }),
+        body: JSON.stringify({
+          username: username.trim(),
+          email: email.trim().toLowerCase(),
+          password,
+        }),
       });
-  
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `HTTP error! Status: ${response.status}`);
-      }
-  
+
       const responseData = await response.json();
-  
-      if (responseData.access_token) {
-        sessionStorage.setItem("token", responseData.access_token);
-        setAuthToken(responseData.access_token);
-  
-        await fetchCurrentUser(responseData.access_token); // Fetch user after successful registration
-  
+      if (!response.ok) {
+        throw new Error(responseData.error || "Registration failed");
+      }
+
+      if (responseData.data && responseData.data.access_token) {
+        const token = responseData.data.access_token;
+        sessionStorage.setItem("token", token);
+        setAuthToken(token);
+        await fetchCurrentUser(token);
+
         toast.update(toastId, {
-          render: "Registered successfully! Redirecting...",
+          render: "Registration successful! Redirecting...",
           type: "success",
           isLoading: false,
-          autoClose: 3000,
+          autoClose: 2000,
         });
-  
-        navigate("/dashboard"); // Redirect after successful registration
+
+        setTimeout(() => navigate("/dashboard"), 500);
       } else {
-        throw new Error("Registration failed. No token returned.");
+        throw new Error("Registration successful but no access token received");
       }
     } catch (error) {
       console.error("Registration error:", error);
-  
       toast.update(toastId, {
         render: error.message || "Registration failed",
         type: "error",
@@ -151,15 +148,14 @@ export const UserProvider = ({ children }) => {
       });
     }
   };
-  
-  
+
   const updateUser = async (userId, updatedInfo) => {
     try {
       const res = await fetch(`http://127.0.0.1:5000/user/${userId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${authToken}`,
+          Authorization: `Bearer ${authToken}`,
         },
         body: JSON.stringify(updatedInfo),
       });
@@ -182,7 +178,7 @@ export const UserProvider = ({ children }) => {
       const res = await fetch(`http://127.0.0.1:5000/user/${userId}`, {
         method: "DELETE",
         headers: {
-          "Authorization": `Bearer ${authToken}`,
+          Authorization: `Bearer ${authToken}`,
         },
       });
 
@@ -199,7 +195,7 @@ export const UserProvider = ({ children }) => {
   };
 
   return (
-    <UserContext.Provider value={{ current_user, login, logout, addUser, updateUser, deleteUser }}>
+    <UserContext.Provider value={{ current_user, setUser: setCurrentUser, login, logout, addUser, updateUser, deleteUser }}>
       {children}
     </UserContext.Provider>
   );

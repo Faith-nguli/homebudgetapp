@@ -1,46 +1,46 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom'; // Make sure to import useNavigate from react-router-dom
 import { Wallet } from "lucide-react"; // Import Wallet icon
 
-
 function Profile() {
+  const navigate = useNavigate(); // Define navigate
+
   return (
     <div className="profile-container">
-    <header className="relative w-full flex items-center p-4">
-  {/* <div className="logo-icon">
-    <Wallet size={24} />
-  </div> */}
-  <nav className="absolute top-4 right-4 flex gap-4">
-        <button
-          className="dashboard"
-          onClick={() => navigate("/dashboard")}
-        >
-          Dashboard
-        </button>
-        <button
-          className="logout"
-          onClick={() => navigate("/logout")}
-        >
-          Logout
-        </button>
-  </nav>
-</header>
+      <header className="header">
+        <nav className="nav">
+          <button
+            className="btn dashboard-btn"
+            onClick={() => navigate("/dashboard")}
+          >
+            Dashboard
+          </button>
+          <button
+            className="btn logout-btn"
+            onClick={() => navigate("/logout")}
+          >
+            Logout
+          </button>
+        </nav>
+      </header>
 
-
-      <main>
-        <div className="user-info">
-          <img src="profile-pic.jpg" alt="Profile Picture" />
-          <div className="user-details">
-            <p>Username: { /* Replace with actual username */ }</p>
-            <p>Email: { /* Replace with actual email */ }</p>
+      <main className="main-content">
+        <div className="profile-card">
+          <div className="profile-header">
+            <img src="profile-pic.jpg" alt="Profile Picture" className="profile-pic" />
+            <div className="user-info">
+              <h2 className="user-name">Username</h2>
+              <p className="user-email">email@example.com</p>
+            </div>
           </div>
+          {/* Add more profile content here (e.g., bio, settings) */}
         </div>
-        {/* Add more profile content here (e.g., bio, settings) */}
       </main>
 
-      <footer>
-        <button>Edit</button>
-        <button>Delete</button>
-      </footer>
+      <div className="buttons-container">
+        <button className="btn edit-btn">Edit</button>
+        <button className="btn delete-btn">Delete</button>
+      </div>
     </div>
   );
 }

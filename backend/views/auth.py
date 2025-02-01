@@ -1,63 +1,41 @@
 from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify
 from werkzeug.security import check_password_hash, generate_password_hash
-from flask_jwt_extended import create_access_token
-from flask_jwt_extended import get_jwt_identity, get_jwt
-from flask_jwt_extended import jwt_required
-from flask_jwt_extended import JWTManager
+from flask_jwt_extended import create_access_token, get_jwt_identity, get_jwt, jwt_required
 from flask_mail import Message
-
 from models import db, User, TokenBlocklist
 
-# Create Blueprint for authentication routes
 auth_bp = Blueprint("auth_bp", __name__)
 
 @auth_bp.route("/user", methods=['POST'])
 def create_user():
     from app import mail
     data = request.get_json()
-    print("Received Data:", data)
     
     username = data.get('username')
     email = data.get('email')
     password = data.get('password')
 
-    # Validate required fields
     if not username or not email or not password:
-        return jsonify({
-            "success": False,
-            "error": "Missing required fields"
-        }), 400
+        return jsonify({"success": False, "error": "Missing required fields"}), 400
 
-    # Check if the username or email already exists
     if User.query.filter_by(username=username).first():
-        return jsonify({
-            "success": False,
-            "error": "Username already exists"
-        }), 400
-        
+        return jsonify({"success": False, "error": "Username already exists"}), 400
+    
     if User.query.filter_by(email=email).first():
-        return jsonify({
-            "success": False,
-            "error": "Email already exists"
-        }), 400
+        return jsonify({"success": False, "error": "Email already exists"}), 400
 
-    # Validate password length
     if len(password) < 8:
-        return jsonify({
-            "success": False,
-            "error": "Password must be at least 8 characters long"
-        }), 400
+        return jsonify({"success": False, "error": "Password must be at least 8 characters long"}), 400
 
     try:
-        # Hash the password before storing it
         hashed_password = generate_password_hash(password)
         new_user = User(username=username, email=email, password=hashed_password)
-        
         db.session.add(new_user)
         db.session.commit()
 
-        # Send confirmation email
+        access_token = create_access_token(identity=new_user.id)
+        
         try:
             msg = Message(
                 subject="Welcome to Home Budget Application",
@@ -67,25 +45,23 @@ def create_user():
             mail.send(msg)
         except Exception as e:
             print(f"Failed to send email: {e}")
-            # Don't return error - email sending is not critical for registration
 
         return jsonify({
             "success": True,
-            "message": "Registration successful! Please log in.",
-            "user": {
-                "username": new_user.username,
-                "email": new_user.email
+            "message": "Registration successful!",
+            "data": {
+                "user": {
+                    "id": new_user.id,
+                    "username": new_user.username,
+                    "email": new_user.email
+                },
+                "access_token": access_token
             }
         }), 201
 
     except Exception as e:
         db.session.rollback()
-        return jsonify({
-            "success": False,
-            "error": "Registration failed. Please try again."
-        }), 500
-
-
+        return jsonify({"success": False, "error": "Registration failed. Please try again."}), 500
 
 @auth_bp.route("/login", methods=["POST"])
 def login():
@@ -117,7 +93,6 @@ def login():
         }
     }), 200
 
-
 @auth_bp.route("/user", methods=["GET"])
 @jwt_required()
 def current_user():
@@ -133,7 +108,6 @@ def current_user():
         }
     }), 200
 
-
 @auth_bp.route("/user/profile", methods=["PUT"])
 @jwt_required()
 def update_profile():
@@ -146,7 +120,6 @@ def update_profile():
     username = data.get("username", user.username)
     email = data.get("email", user.email)
 
-    # Check for duplicate username or email
     if username != user.username and User.query.filter_by(username=username).first():
         return jsonify({"status": "error", "message": "Username already exists"}), 400
 
@@ -167,7 +140,6 @@ def update_profile():
         }
     }), 200
 
-
 @auth_bp.route("/logout", methods=["DELETE"])
 @jwt_required()
 def logout():
@@ -181,13 +153,11 @@ def logout():
 
     return jsonify({"status": "success", "message": "Logged out successfully"}), 200
 
-
 @auth_bp.route("/user", methods=["DELETE"])
 @jwt_required()
 def delete_account():
     current_user_id = get_jwt_identity()
     user = User.query.get_or_404(current_user_id)
-
     db.session.delete(user)
     db.session.commit()
 
