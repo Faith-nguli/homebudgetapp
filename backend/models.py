@@ -37,7 +37,16 @@ class Budget(db.Model):
     expense_id = db.Column(db.Integer, db.ForeignKey("expense.id"), nullable=False)
     image_url = db.Column(db.String(255), nullable=True)
 
-   
+    @property
+    def current_spent(self):
+        expenses_for_budget = Expense.query.filter_by(user_id=self.user_id, category=self.category).all()
+        total_spent = sum(expense.amount for expense in expenses_for_budget) if expenses_for_budget else 0.0
+        return total_spent
+    
+    @property
+    def savings(self):
+        return self.limit - self.current_spent
+
 
 
 

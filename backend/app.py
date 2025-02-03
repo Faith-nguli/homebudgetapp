@@ -13,6 +13,7 @@ from views.user import user_bp
 from views.budget import budget_bp
 from views.expense import expense_bp
 
+
 # Initialize Flask-Mail
 mail = Mail()
 
@@ -67,7 +68,8 @@ def create_app():
                     limit=float(data['limit']),  # Convert to float
                     user_id=current_user_id,
                     image_url=data.get('image_url'),
-                    expense_id=data.get('expense_id')  # Ensure Budget model has expense_id
+                    expense_id=data.get('expense_id'),
+                     # Ensure Budget model has expense_id
                 )
 
                 db.session.add(budget)
@@ -80,7 +82,8 @@ def create_app():
                     'current_spent': budget.current_spent,
                     'user_id': budget.user_id,
                     'image_url': budget.image_url,
-                    'expense_id': budget.expense_id  # Added expense_id
+                    'expense_id': budget.expense_id,
+                    'savings': budget.savings
                 }), 201
 
             except ValueError:
@@ -108,7 +111,8 @@ def create_app():
             'current_spent': budget.current_spent,
             'user_id': budget.user_id,
             'image_url': budget.image_url,
-            'expense_id': budget.expense_id  # Added expense_id
+            'expense_id': budget.expense_id,  
+            'savings': budget.savings
         } for budget in budgets]), 200
 
     # Route to fetch a specific budget by ID
@@ -124,10 +128,47 @@ def create_app():
                 'current_spent': budget.current_spent,
                 'user_id': budget.user_id,
                 'image_url': budget.image_url,
-                'expense_id': budget.expense_id  # Added expense_id
+                'expense_id': budget.expense_id,
+                'savings': budget.savings
             }), 200
         except Exception as e:
             return jsonify({"error": f"Error retrieving budget: {str(e)}"}), 500
+
+    @app.route('/budgets/<int:budget_id>', methods=['PATCH'])
+    @jwt_required()
+    def update_budget(budget_id):
+        try:
+            data = request.get_json()
+            if not data:
+                return jsonify({"error": "Missing request data"}), 400
+
+            budget = Budget.query.filter_by(id=budget_id).first()
+
+            if not budget:
+                return jsonify({"error": "Budget not found or not authorized"}), 404
+
+            # Update ONLY the allowed fields
+            budget.category = data.get('category', budget.category)
+            budget.limit = float(data.get('limit', budget.limit))  # Ensure it's a float
+            budget.image_url = data.get('image_url', budget.image_url)
+
+            db.session.commit()  # Commit changes to the database
+
+            # Return the updated budget (current_spent and savings will be calculated)
+            return jsonify({
+                'id': budget.id,
+                'category': budget.category,
+                'limit': budget.limit,
+                'current_spent': budget.current_spent,  # Access property to calculate
+                'savings': budget.savings,  # Access property to calculate
+                'user_id': budget.user_id,
+                'image_url': budget.image_url,
+                'savings': budget.savings, # Access property to calculate
+            }), 200
+
+        except Exception as e:  # Catch potential exceptions (e.g., ValueError)
+            db.session.rollback()  # Rollback if there's an error
+            return jsonify({'error': str(e)}), 500  # Return error message
 
     # Route to delete a budget
     @app.route('/budgets/<int:budget_id>', methods=['DELETE'])
@@ -135,13 +176,13 @@ def create_app():
     def delete_budget(budget_id):
         current_user = get_jwt_identity()  # Get the user identity (e.g., user ID) from the token
         budget = Budget.query.filter_by(id=budget_id, user_id=current_user).first()  # Ensure the user owns the budget
-        
+
         if not budget:
             return {"msg": "Budget not found or not authorized"}, 404
 
         db.session.delete(budget)
         db.session.commit()
-        
+
         return {"msg": "Budget deleted successfully"}, 200
 
     # Database configuration
@@ -162,9 +203,6 @@ def create_app():
     app.config['MAIL_PORT'] = 587
     app.config['MAIL_USE_TLS'] = True
     app.config['MAIL_USE_SSL'] = False
-    app.config['MAIL_USERNAME'] = os.getenv("MAIL_USERNAME", "your-email@example.com")
-    app.config['MAIL_PASSWORD'] = os.getenv("MAIL_PASSWORD", "your-email-password")
-    app.config['MAIL_DEFAULT_SENDER'] = os.getenv("MAIL_DEFAULT_SENDER", "your-email@example.com")
 
     # Initialize extensions
     db.init_app(app)

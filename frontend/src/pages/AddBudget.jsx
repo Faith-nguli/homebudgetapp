@@ -11,9 +11,7 @@ function AddBudget() {
     amount: '',
     limit: '',
     image: '',
-    savings: 0,
-    current_spent: 0,
-    expense_id: '',
+    expense_id: ''
   });
 
   function handleChange(e) {
@@ -71,10 +69,10 @@ function AddBudget() {
       category: budget.category,
       amount: parseFloat(budget.amount),
       limit: parseFloat(budget.limit),
-      savings: parseFloat(budget.savings),
+
       image_url: budget.image || null,
-      current_spent: budget.current_spent,
-      expense_id: budget.expense_id || 0, // Default value for expense_id
+
+      expense_id: budget.expense_id || 0 // Default value for expense_id
     };
 
     fetch('http://localhost:5000/budgets', {

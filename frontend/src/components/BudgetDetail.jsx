@@ -4,14 +4,14 @@ import { useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 
 const BudgetDetail = () => {
-  const { budgetId } = useParams(); // Get budgetId from the URL
+  const { budget_id } = useParams(); // Get budgetId from the URL
   const { fetchBudgetById } = useContext(BudgetContext);
   const [budget, setBudget] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!budgetId) {
+    if (!budget_id) {
       setError("Invalid budget ID.");
       setLoading(false);
       return;
@@ -19,8 +19,8 @@ const BudgetDetail = () => {
 
     const loadBudget = async () => {
       try {
-        console.log("Fetching budget with ID:", budgetId);
-        const data = await fetchBudgetById(budgetId);
+        console.log("Fetching budget with ID:", budget_id);
+        const data = await fetchBudgetById(budget_id);
         if (data) {
           setBudget(data);
         } else {
@@ -35,7 +35,7 @@ const BudgetDetail = () => {
     };
 
     loadBudget();
-  }, [budgetId, fetchBudgetById]);
+  }, [budget_id, fetchBudgetById]);
 
   if (loading) return <p>Loading...</p>;
   if (error) return <p>{error}</p>;
@@ -57,14 +57,14 @@ const BudgetDetail = () => {
 export default BudgetDetail;
 
 // Update fetchBudgetById function inside BudgetContext
-export const fetchBudgetById = async (budgetId) => {
+export const fetchBudgetById = async (budget_id) => {
   try {
-    if (!budgetId) throw new Error("Invalid budget ID.");
+    if (!budget_id) throw new Error("Invalid budget ID.");
 
     const token = localStorage.getItem("token");
     if (!token) throw new Error("No authentication token found.");
 
-    const response = await fetch(`http://127.0.0.1:5000/budgets/${budgetId}`, {
+    const response = await fetch(`http://127.0.0.1:5000/budgets/${budget_id}`, {
       method: "GET",
       headers: {
         "Authorization": `Bearer ${token}`,

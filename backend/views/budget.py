@@ -134,35 +134,35 @@ def serve_budget_image(filename):
 
 
 # UPDATE Budget
-@budget_bp.route("/budgets/<int:budget_id>", methods=["PATCH"])
-@jwt_required()
-def update_budget(budget_id):
-    budget = Budget.query.get_or_404(budget_id)
-    user_id = get_jwt_identity()
+# @budget_bp.route("/budgets/<int:budget_id>", methods=["PATCH"])
+# @jwt_required()
+# def update_budget(budget_id):
+#     budget = Budget.query.get_or_404(budget_id)
+#     user_id = get_jwt_identity()
 
-    if budget.user_id != user_id:
-        return jsonify({"error": "Unauthorized"}), 403
+#     if budget.user_id != user_id:
+#         return jsonify({"error": "Unauthorized"}), 403
 
-    data = request.get_json()
-    budget.limit = data.get("limit", budget.limit)
-    budget.category = data.get("category", budget.category)
-    budget.current_spent = data.get("current_spent", budget.current_spent)
-    budget.image_url = data.get("image_url", budget.image_url)
-    budget.expense_id = data.get("expense_id", budget.expense_id)  # Allow updating expense_id
+#     data = request.get_json()
+#     budget.limit = data.get("limit", budget.limit)
+#     budget.category = data.get("category", budget.category)
+#     budget.current_spent = data.get("current_spent", budget.current_spent)
+#     budget.image_url = data.get("image_url", budget.image_url)
+#     budget.expense_id = data.get("expense_id", budget.expense_id)  # Allow updating expense_id
 
-    db.session.commit()
+#     db.session.commit()
 
-    return jsonify({
-        "message": "Budget updated successfully!",
-        "budget": {
-            "id": budget.id,
-            "limit": budget.limit,
-            "category": budget.category,
-            "current_spent": budget.current_spent,
-            "image_url": budget.image_url,
-            "expense_id": budget.expense_id  # Include in response
-        }
-    }), 200
+#     return jsonify({
+#         "message": "Budget updated successfully!",
+#         "budget": {
+#             "id": budget.id,
+#             "limit": budget.limit,
+#             "category": budget.category,
+#             "current_spent": budget.current_spent,
+#             "image_url": budget.image_url,
+#             "expense_id": budget.expense_id  # Include in response
+#         }
+#     }), 200
 
 
 # DELETE Budget

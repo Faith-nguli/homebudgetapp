@@ -14,32 +14,36 @@ def create_expense():
     if not all(k in data for k in ["amount", "category", "date"]):
         return jsonify({"error": "Fields 'amount', 'category', and 'date' are required."}), 400
 
-    user_id = get_jwt_identity()  # The user logging the expense
+    user_id = get_jwt_identity()
 
     try:
-        parsed_date = datetime.strptime(data["date"], "%Y-%m-%d").date()  # Convert to date object
+        parsed_date = datetime.strptime(data["date"], "%Y-%m-%d").date()
     except ValueError:
         return jsonify({"error": "Invalid date format. Use YYYY-MM-DD."}), 400
 
     expense = Expense(
-        amount=data["amount"], 
-        category=data["category"], 
-        date=parsed_date,  # Use the parsed date
+        amount=data["amount"],
+        category=data["category"],
+        date=parsed_date,
         user_id=user_id
     )
-    
-    db.session.add(expense)
-    db.session.commit()
 
-    return jsonify({
-        "message": "Expense logged successfully!",
-        "expense": {
-            "id": expense.id,
-            "amount": expense.amount,
-            "category": expense.category,
-            "date": expense.date.strftime("%Y-%m-%d")  # Convert back to string for JSON response
-        }
-    }), 201
+    try:  # Add a try-except block for database errors
+        db.session.add(expense)
+        db.session.commit()
+
+        return jsonify({
+            "message": "Expense logged successfully!",
+            "expense": {
+                "id": expense.id,
+                "amount": expense.amount,
+                "category": expense.category,
+                "date": expense.date.strftime("%Y-%m-%d")
+            }
+        }), 201
+    except Exception as e:  # Handle potential database errors
+        db.session.rollback()  # Rollback the transaction in case of error
+        return jsonify({"error": f"Database error: {str(e)}"}), 500
 
 
 # GET all expenses
@@ -48,7 +52,15 @@ def create_expense():
 def get_expenses():
     user_id = get_jwt_identity()
     expenses = Expense.query.filter_by(user_id=user_id).all()
-    expense_list = [{"id": expense.id, "amount": expense.amount, "category": expense.category, "date": expense.date} for expense in expenses]
+    expense_list = [
+        {
+            "id": expense.id,
+            "amount": expense.amount,
+            "category": expense.category,
+            "date": expense.date.strftime("%Y-%m-%d")  # Format date for JSON
+        }
+        for expense in expenses
+    ]
     return jsonify(expense_list), 200
 
 # GET expense by ID
@@ -65,7 +77,7 @@ def get_expense(expense_id):
         "id": expense.id,
         "amount": expense.amount,
         "category": expense.category,
-        "date": expense.date
+        "date": expense.date.strftime("%Y-%m-%d")  # Format date for JSON
     }), 200
 
 @expense_bp.route("/expense/<int:expense_id>", methods=["PATCH"])
@@ -94,17 +106,22 @@ def update_expense(expense_id):
     expense.category = data["category"]
     expense.date = parsed_date  # Store as a `date` object
 
-    db.session.commit()
+    try:  # Add a try-except block for database errors
+        db.session.commit()
 
-    return jsonify({
-        "message": "Expense updated successfully!",
-        "expense": {
-            "id": expense.id,
-            "amount": expense.amount,
-            "category": expense.category,
-            "date": expense.date.strftime("%Y-%m-%d")  # Convert back to string for JSON response
-        }
-    }), 200
+        return jsonify({
+            "message": "Expense updated successfully!",
+            "expense": {
+                "id": expense.id,
+                "amount": expense.amount,
+                "category": expense.category,
+                "date": expense.date.strftime("%Y-%m-%d")  # Convert back to string for JSON response
+            }
+        }), 200
+    except Exception as e:  # Handle potential database errors
+        db.session.rollback()  # Rollback the transaction in case of error
+        return jsonify({"error": f"Database error: {str(e)}"}), 500
+
 
 # DELETE Expense
 @expense_bp.route("/expense/<int:expense_id>", methods=["DELETE"])
@@ -116,7 +133,11 @@ def delete_expense(expense_id):
     if expense.user_id != user_id:
         return jsonify({"error": "Unauthorized"}), 403
 
-    db.session.delete(expense)
-    db.session.commit()
+    try:
+        db.session.delete(expense)
+        db.session.commit()
+        return jsonify({"message": "Expense deleted successfully!"}), 200
 
-    return jsonify({"message": "Expense deleted successfully!"}), 200
+    except Exception as e:  # Handle potential database errors
+        db.session.rollback()  # Rollback the transaction in case of error
+        return jsonify({"error": f"Database error: {str(e)}"}), 500

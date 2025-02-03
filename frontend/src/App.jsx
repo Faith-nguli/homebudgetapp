@@ -34,7 +34,7 @@ function App() {
                 <Route path="profile" element={<Profile />} />
                 <Route path="login" element={<Login />} />
                 <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="budget-detail/:id" element={<BudgetDetail />} />
+                <Route path="budget-detail/:budget_id" element={<BudgetDetail />} />
                 <Route path="expense-detail/:id" element={<ExpenseDetail />} />
                 <Route path="add-budget" element={<AddBudget />} />  
                 {/* <Route path="category-detail/:id" element={<CategoryDetails />} /> */}

@@ -14,24 +14,36 @@ export const BudgetProvider = ({ children }) => {
 
   const fetchBudgets = async () => {
     try {
-      const response = await fetch("http://127.0.0.1:5000/budgets");
-
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No token found. Please log in.");
+      }
+  
+      const response = await fetch("http://127.0.0.1:5000/budgets", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,  // 🔹 Include token
+        },
+      });
+  
       if (!response.ok) {
         throw new Error("Failed to fetch budgets.");
       }
-
+  
       const data = await response.json();
       setBudgets(data);
     } catch (error) {
       console.error("Fetch error:", error);
-      toast.error("Error fetching budgets.");
+      toast.error(error.message);
     }
   };
+  
 
   // 🔹 FETCH SINGLE BUDGET BY ID
-  const fetchBudgetById = async (budgetId) => {
+  const fetchBudgetById = async (budget_id) => {
     try {
-      const response = await fetch(`http://127.0.0.1:5000/budget/${budgetId}`);
+      const response = await fetch(`http://127.0.0.1:5000/budget/${budget_id}`);
 
       if (!response.ok) {
         throw new Error("Failed to fetch budget.");
@@ -117,11 +129,11 @@ export const BudgetProvider = ({ children }) => {
   };
 
   // 🔹 UPDATE BUDGET
-  const updateBudget = async (budgetId, updatedData) => {
+  const updateBudget = async (budget_id, updatedData) => {
     toast.loading("Updating budget...");
 
     try {
-      const response = await fetch(`http://127.0.0.1:5000/budgets/${budgetId}`, {
+      const response = await fetch(`http://127.0.0.1:5000/budgets/${budget_id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -151,11 +163,11 @@ export const BudgetProvider = ({ children }) => {
   };
 
   // 🔹 DELETE BUDGET
-  const deleteBudget = async (budgetId) => {
+  const deleteBudget = async (budget_id) => {
     toast.loading("Deleting budget...");
 
     try {
-      const response = await fetch(`http://127.0.0.1:5000/budgets/${budgetId}`, {
+      const response = await fetch(`http://127.0.0.1:5000/budgets/${budget_id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -166,7 +178,7 @@ export const BudgetProvider = ({ children }) => {
         throw new Error("Failed to delete budget.");
       }
 
-      setBudgets((prevBudgets) => prevBudgets.filter((budget) => budget.id !== budgetId));
+      setBudgets((prevBudgets) => prevBudgets.filter((budget) => budget.id !== budget_id));
 
       toast.dismiss();
       toast.success("Budget deleted successfully!");

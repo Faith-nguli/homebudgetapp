@@ -51,11 +51,11 @@ const Dashboard = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const handleDelete = async (budgetId) => {
+  const handleDelete = async (budget_id) => {
     if (!window.confirm("Are you sure you want to delete this budget?")) return;
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`http://localhost:5000/budgets/${budgetId}`, {
+      const response = await fetch(`http://localhost:5000/budgets/${budget_id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -63,8 +63,8 @@ const Dashboard = () => {
         },
       });
       if (!response.ok) throw new Error("Failed to delete budget");
-  
-      setBudgets((prev) => prev.filter((budget) => budget.id !== budgetId));
+
+      setBudgets((prev) => prev.filter((budget) => budget.id !== budget_id));
     } catch (error) {
       console.error("Delete error:", error);
     }
@@ -77,24 +77,48 @@ const Dashboard = () => {
   const handleSaveEdit = async () => {
     try {
       const token = localStorage.getItem("token");
+      if (!token) throw new Error("User is not authenticated");
+
+      if (!editingBudget || !editingBudget.id) {
+        throw new Error("Invalid budget data");
+      }
+
+      const updatedData = {
+        category: editingBudget.category || "",
+        limit: parseFloat(editingBudget.limit) || 0,
+        current_spent: parseFloat(editingBudget.current_spent || 0),
+        savings: parseFloat(editingBudget.savings || 0),
+        image_url: editingBudget.image_url || null,
+      };
+
+      console.log("Sending update:", updatedData); // Debugging log
+
       const response = await fetch(`http://localhost:5000/budgets/${editingBudget.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(editingBudget),
+        body: JSON.stringify(updatedData),
       });
-      if (!response.ok) throw new Error("Failed to update budget");
 
-      setBudgets((prev) => prev.map((b) => (b.id === editingBudget.id ? editingBudget : b)));
+      const updatedBudget = await response.json();
+      if (!response.ok) {
+        throw new Error(updatedBudget.error || "Failed to update budget");
+      }
+
+      setBudgets((prev) =>
+        prev.map((budget) => (budget.id === editingBudget.id ? updatedBudget : budget))
+      );
+
       setEditingBudget(null);
+      alert("Budget updated successfully!");
     } catch (error) {
       console.error("Update error:", error);
+      alert(`Error updating budget: ${error.message}`);
     }
   };
 
-  // Calculate the totals with proper formatting
   const totalExpenses = budgets.reduce((sum, budget) => sum + budget.current_spent, 0);
   const totalLimit = budgets.reduce((sum, budget) => sum + budget.limit, 0);
   const totalSavings = budgets.reduce((sum, budget) => sum + (budget.savings || 0), 0);
@@ -171,6 +195,5 @@ const Dashboard = () => {
     </div>
   );
 };
-
 
 export default Dashboard;
