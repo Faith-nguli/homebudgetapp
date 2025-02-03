@@ -12,9 +12,8 @@ import Login from './pages/Login';
 import Dashboard from './components/Dashboard';
 import BudgetDetail from './components/BudgetDetail';
 import ExpenseDetail from './components/ExpenseDetail';
-import Button from './components/Button';
 import AddBudget from './pages/AddBudget';
-import CategoryDetails from './pages/CategoryDetails';
+// import CategoryDetails from './pages/CategoryDetails';
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -38,8 +37,8 @@ function App() {
                 <Route path="budget-detail/:id" element={<BudgetDetail />} />
                 <Route path="expense-detail/:id" element={<ExpenseDetail />} />
                 <Route path="add-budget" element={<AddBudget />} />  
-                <Route path="category-detail/:category" element={<CategoryDetails />} />
-                <Route path ="button" element={<Button />} />
+                {/* <Route path="category-detail/:id" element={<CategoryDetails />} /> */}
+
                 <Route path="*" element={<NotFound />} />
               </Route>
             </Routes>

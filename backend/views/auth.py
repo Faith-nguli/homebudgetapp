@@ -65,33 +65,33 @@ def create_user():
 
 @auth_bp.route("/login", methods=["POST"])
 def login():
-    data = request.get_json()
-    if not data:
-        return jsonify({"status": "error", "message": "Invalid input"}), 400
-
-    email = data.get("email")
-    password = data.get("password")
-
-    if not email or not password:
-        return jsonify({"status": "error", "message": "Email and password are required"}), 400
-
-    user = User.query.filter(User.email.ilike(email)).first()
-    if not user or not check_password_hash(user.password, password):
-        return jsonify({"status": "error", "message": "Invalid email or password"}), 401
-
-    access_token = create_access_token(identity=user.id)
-    return jsonify({
-        "status": "success",
-        "message": "Login successful",
-        "data": {
-            "user": {
-                "id": user.id,
-                "username": user.username,
-                "email": user.email
-            },
-            "access_token": access_token
-        }
-    }), 200
+   data = request.get_json()
+   if not data:
+       return jsonify({"status": "error", "message": "Invalid input"}), 400
+  
+   email = data.get("email")
+   password = data.get("password")
+  
+   if not email or not password:
+       return jsonify({"status": "error", "message": "Email and password are required"}), 400
+  
+   user = User.query.filter(User.email.ilike(email)).first()
+   if not user or not check_password_hash(user.password, password):
+       return jsonify({"status": "error", "message": "Invalid email or password"}), 401
+  
+   access_token = create_access_token(identity=str(user.id))  # Convert user.id to string
+   return jsonify({
+       "status": "success",
+       "message": "Login successful",
+       "data": {
+           "user": {
+               "id": user.id,
+               "username": user.username,
+               "email": user.email
+           },
+           "access_token": access_token
+       }
+   }), 200
 
 @auth_bp.route("/user", methods=["GET"])
 @jwt_required()
@@ -108,26 +108,32 @@ def current_user():
         }
     }), 200
 
-@auth_bp.route("/user/profile", methods=["PUT"])
+@auth_bp.route("/user/update", methods=["PUT"])
 @jwt_required()
 def update_profile():
     current_user_id = get_jwt_identity()
+    user = User.query.get_or_404(current_user_id)
+
     data = request.get_json()
     if not data:
         return jsonify({"status": "error", "message": "Invalid input"}), 400
 
-    user = User.query.get_or_404(current_user_id)
     username = data.get("username", user.username)
     email = data.get("email", user.email)
+   
 
+    # Check if username or email already exists
     if username != user.username and User.query.filter_by(username=username).first():
         return jsonify({"status": "error", "message": "Username already exists"}), 400
 
     if email != user.email and User.query.filter(User.email.ilike(email)).first():
         return jsonify({"status": "error", "message": "Email already exists"}), 400
 
+    # Update user fields
     user.username = username
     user.email = email
+   
+
     db.session.commit()
 
     return jsonify({
@@ -139,6 +145,51 @@ def update_profile():
             "email": user.email
         }
     }), 200
+
+
+@auth_bp.route("/user/profile", methods=["GET"])
+@jwt_required()  # Ensure user is authenticated
+def get_profile():
+    user_id = get_jwt_identity()  # Get user ID from JWT token
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    return jsonify({
+        "username": user.username,
+        "email": user.email
+    }), 200
+
+@auth_bp.route("/user/change-password", methods=["PUT"])
+@jwt_required()
+def change_password():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({"status": "error", "message": "User not found"}), 404
+
+    data = request.json
+    current_password = data.get("currentPassword")
+    new_password = data.get("newPassword")
+    confirm_password = data.get("confirmPassword")
+
+    if not current_password or not new_password or not confirm_password:
+        return jsonify({"status": "error", "message": "All fields are required"}), 400
+
+    if not check_password_hash(user.password, current_password):
+        return jsonify({"status": "error", "message": "Current password is incorrect"}), 400
+
+    if new_password != confirm_password:
+        return jsonify({"status": "error", "message": "Passwords do not match"}), 400
+
+    # Hash and update the password
+    user.password = generate_password_hash(new_password)
+    db.session.commit()
+
+    return jsonify({"status": "success", "message": "Password updated successfully"}), 200
+
 
 @auth_bp.route("/logout", methods=["DELETE"])
 @jwt_required()

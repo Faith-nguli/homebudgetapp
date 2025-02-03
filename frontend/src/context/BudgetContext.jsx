@@ -28,9 +28,24 @@ export const BudgetProvider = ({ children }) => {
     }
   };
 
+  // 🔹 FETCH SINGLE BUDGET BY ID
+  const fetchBudgetById = async (budgetId) => {
+    try {
+      const response = await fetch(`http://127.0.0.1:5000/budget/${budgetId}`);
 
+      if (!response.ok) {
+        throw new Error("Failed to fetch budget.");
+      }
 
-const handleFileUpload = async (event) => {
+      return await response.json();
+    } catch (error) {
+      console.error("Fetch single budget error:", error);
+      toast.error("Error fetching budget.");
+      return null;
+    }
+  };
+
+  const handleFileUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
 
@@ -40,72 +55,36 @@ const handleFileUpload = async (event) => {
     const toastId = toast.loading("Uploading image...");
 
     try {
-        const response = await fetch("http://localhost:5000/budgets/upload", {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`, // If using JWT
-            },
-            body: formData,
-        });
+      const response = await fetch("http://127.0.0.1:5000/budgets/upload", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: formData,
+      });
 
-        const data = await response.json();
-        if (response.ok) {
-            setImageUrl(data.image_url); // Save the image URL
-            toast.update(toastId,{
-              render:"Image uploaded successfully",
-              type:"success",
-              isLoading: false,
-              autoClose: 3000,
-            });
-        } else {
-          throw new Error(data.error || "Image upload failed");
-        }
-    } catch (error) {
-        console.error("Error uploading image:", error);
+      const data = await response.json();
+      if (response.ok) {
+        setImageUrl(data.image_url);
         toast.update(toastId, {
-          render: error.message || "Image upload failed",
-          type: "error",
+          render: "Image uploaded successfully",
+          type: "success",
           isLoading: false,
           autoClose: 3000,
         });
-    }
-};
-
-const [category, setCategory] = useState('');
-const [amount, setAmount] = useState('');
-const [limit, setLimit] = useState('');
-
-const handleSubmit = async (e) => {
-    e.preventDefault();
-    const budgetData = {
-        category,
-        amount: parseFloat(amount),
-        limit: parseFloat(limit),
-        image: imageUrl, // Use the uploaded image URL
-    };
-
-    try {
-        const response = await fetch("http://localhost:5000/api/add-budget", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${localStorage.getItem("token")}`, // JWT if needed
-            },
-            body: JSON.stringify(budgetData),
-        });
-
-        const data = await response.json();
-        if (response.ok) {
-            console.log("Budget added:", data);
-            navigate('/'); // Redirect after submission
-        } else {
-            console.error("Error adding budget:", data.error);
-        }
+      } else {
+        throw new Error(data.error || "Image upload failed");
+      }
     } catch (error) {
-        console.error("Error:", error);
+      console.error("Error uploading image:", error);
+      toast.update(toastId, {
+        render: error.message || "Image upload failed",
+        type: "error",
+        isLoading: false,
+        autoClose: 3000,
+      });
     }
-};
-
+  };
 
   // 🔹 ADD NEW BUDGET
   const addBudget = async (budgetData) => {
@@ -114,7 +93,10 @@ const handleSubmit = async (e) => {
     try {
       const response = await fetch("http://127.0.0.1:5000/budgets", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
         body: JSON.stringify(budgetData),
       });
 
@@ -123,7 +105,7 @@ const handleSubmit = async (e) => {
       }
 
       const newBudget = await response.json();
-      setBudgets((prevBudgets) => [...prevBudgets, newBudget]); // 
+      setBudgets((prevBudgets) => [...prevBudgets, newBudget]);
 
       toast.dismiss();
       toast.success("Budget added successfully!");
@@ -141,7 +123,10 @@ const handleSubmit = async (e) => {
     try {
       const response = await fetch(`http://127.0.0.1:5000/budgets/${budgetId}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
         body: JSON.stringify(updatedData),
       });
 
@@ -172,6 +157,9 @@ const handleSubmit = async (e) => {
     try {
       const response = await fetch(`http://127.0.0.1:5000/budgets/${budgetId}`, {
         method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
       });
 
       if (!response.ok) {
@@ -190,15 +178,18 @@ const handleSubmit = async (e) => {
   };
 
   return (
-    <BudgetContext.Provider value={{
-      budgets,
-      fetchBudgets,
-      addBudget,
-      updateBudget,
-      deleteBudget,
-      handleFileUpload,
-      imageUrl
-    }}>
+    <BudgetContext.Provider
+      value={{
+        budgets,
+        fetchBudgets,
+        fetchBudgetById,
+        addBudget,
+        updateBudget,
+        deleteBudget,
+        handleFileUpload,
+        imageUrl,
+      }}
+    >
       {children}
     </BudgetContext.Provider>
   );

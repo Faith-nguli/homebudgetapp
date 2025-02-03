@@ -14,6 +14,7 @@ class User(db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
 
     # Relationships
     expenses = db.relationship("Expense", backref="user", lazy=True)
@@ -25,6 +26,7 @@ class Expense(db.Model):
     amount = db.Column(db.Float, nullable=False)
     date = db.Column(db.DateTime, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    
 
 class Budget(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -32,7 +34,10 @@ class Budget(db.Model):
     limit = db.Column(db.Float, nullable=False)
     current_spent = db.Column(db.Float, default=0.0, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    expense_id = db.Column(db.Integer, db.ForeignKey("expense.id"), nullable=False)
     image_url = db.Column(db.String(255), nullable=True)
+
+   
 
 
 

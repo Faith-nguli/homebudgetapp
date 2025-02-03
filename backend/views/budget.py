@@ -21,39 +21,42 @@ def allowed_file(filename):
 
 
 #  CREATE Budget with Image Support
-@budget_bp.route("/budgets", methods=["POST"])
-@jwt_required()
-def create_budget():
-    data = request.get_json()
+# @budget_bp.route("/budgets", methods=["POST"])
+# @jwt_required()
+# def create_budget():
+#     data = request.get_json()
 
-    if not all(k in data for k in ["limit", "category"]):
-        return jsonify({"error": "Fields 'limit' and 'category' are required."}), 400
+#     if not all(k in data for k in ["limit", "category"]):
+#         return jsonify({"error": "Fields 'limit' and 'category' are required."}), 400
 
-    user_id = get_jwt_identity()
-    current_spent = data.get("current_spent", 0.0)
-    image_url = data.get("image_url", None)  # Default to None if no image is provided
+#     user_id = get_jwt_identity()
+#     current_spent = data.get("current_spent", 0.0)
+#     image_url = data.get("image_url", None)  # Default to None if no image is provided
+#     expense_id = data.get("expense_id", None)  # Include expense_id if provided
 
-    budget = Budget(
-        limit=data["limit"],
-        category=data["category"],
-        user_id=user_id,
-        current_spent=current_spent,
-        image_url=image_url
-    )
+#     budget = Budget(
+#         limit=data["limit"],
+#         category=data["category"],
+#         user_id=user_id,
+#         current_spent=current_spent,
+#         image_url=image_url,
+#         expense_id=expense_id  # New field
+#     )
 
-    db.session.add(budget)
-    db.session.commit()
+#     db.session.add(budget)
+#     db.session.commit()
 
-    return jsonify({
-        "message": "Budget created successfully!",
-        "budget": {
-            "id": budget.id,
-            "limit": budget.limit,
-            "category": budget.category,
-            "current_spent": budget.current_spent,
-            "image_url": budget.image_url
-        }
-    }), 201
+#     return jsonify({
+#         "message": "Budget created successfully!",
+#         "budget": {
+#             "id": budget.id,
+#             "limit": budget.limit,
+#             "category": budget.category,
+#             "current_spent": budget.current_spent,
+#             "image_url": budget.image_url,
+#             "expense_id": budget.expense_id  # Include in response
+#         }
+#     }), 201
 
 
 #  UPLOAD Budget Image
@@ -89,43 +92,45 @@ def serve_budget_image(filename):
 
 
 # GET all budgets (Filtered by User)
-@budget_bp.route("/budgets", methods=["GET"])
-@jwt_required()
-def get_budgets():
-    user_id = get_jwt_identity()
-    budgets = Budget.query.filter_by(user_id=user_id).all()
+# @budget_bp.route("/budgets", methods=["GET"])
+# @jwt_required()
+# def get_budgets():
+#     user_id = get_jwt_identity()
+#     budgets = Budget.query.filter_by(user_id=user_id).all()
 
-    budget_list = [
-        {
-            "id": budget.id,
-            "limit": budget.limit,
-            "category": budget.category,
-            "current_spent": budget.current_spent,
-            "image_url": budget.image_url
-        }
-        for budget in budgets
-    ]
+#     budget_list = [
+#         {
+#             "id": budget.id,
+#             "limit": budget.limit,
+#             "category": budget.category,
+#             "current_spent": budget.current_spent,
+#             "image_url": budget.image_url,
+#             "expense_id": budget.expense_id  # Include in response
+#         }
+#         for budget in budgets
+#     ]
 
-    return jsonify(budget_list), 200
+#     return jsonify(budget_list), 200
 
 
 # GET Budget by ID
-@budget_bp.route("/budgets/<int:budget_id>", methods=["GET"])
-@jwt_required()
-def get_budget(budget_id):
-    budget = Budget.query.get_or_404(budget_id)
-    user_id = get_jwt_identity()
+# @budget_bp.route("/budgets/<int:budget_id>", methods=["GET"])
+# @jwt_required()
+# def get_budget(budget_id):
+#     budget = Budget.query.get_or_404(budget_id)
+#     user_id = get_jwt_identity()
 
-    if budget.user_id != user_id:
-        return jsonify({"error": "Unauthorized"}), 403
+#     if budget.user_id != user_id:
+#         return jsonify({"error": "Unauthorized"}), 403
 
-    return jsonify({
-        "id": budget.id,
-        "limit": budget.limit,
-        "category": budget.category,
-        "current_spent": budget.current_spent,
-        "image_url": budget.image_url
-    }), 200
+#     return jsonify({
+#         "id": budget.id,
+#         "limit": budget.limit,
+#         "category": budget.category,
+#         "current_spent": budget.current_spent,
+#         "image_url": budget.image_url,
+#         "expense_id": budget.expense_id  # Include in response
+#     }), 200
 
 
 # UPDATE Budget
@@ -143,6 +148,7 @@ def update_budget(budget_id):
     budget.category = data.get("category", budget.category)
     budget.current_spent = data.get("current_spent", budget.current_spent)
     budget.image_url = data.get("image_url", budget.image_url)
+    budget.expense_id = data.get("expense_id", budget.expense_id)  # Allow updating expense_id
 
     db.session.commit()
 
@@ -153,22 +159,23 @@ def update_budget(budget_id):
             "limit": budget.limit,
             "category": budget.category,
             "current_spent": budget.current_spent,
-            "image_url": budget.image_url
+            "image_url": budget.image_url,
+            "expense_id": budget.expense_id  # Include in response
         }
     }), 200
 
 
 # DELETE Budget
-@budget_bp.route("/budgets/<int:budget_id>", methods=["DELETE"])
-@jwt_required()
-def delete_budget(budget_id):
-    budget = Budget.query.get_or_404(budget_id)
-    user_id = get_jwt_identity()
+# @budget_bp.route("/budgets/<int:budget_id>", methods=["DELETE"])
+# @jwt_required()
+# def delete_budget(budget_id):
+#     budget = Budget.query.get_or_404(budget_id)
+#     user_id = get_jwt_identity()
 
-    if budget.user_id != user_id:
-        return jsonify({"error": "Unauthorized"}), 403
+#     if budget.user_id != user_id:
+#         return jsonify({"error": "Unauthorized"}), 403
 
-    db.session.delete(budget)
-    db.session.commit()
+#     db.session.delete(budget)
+#     db.session.commit()
 
-    return jsonify({"message": "Budget deleted successfully!"}), 200
+#     return jsonify({"message": "Budget deleted successfully!"}), 200

@@ -1,54 +1,52 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-
+import "../App.css";
 
 function Home() {
   const navigate = useNavigate();
-  return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
-      <nav> {/* No className needed here, styled in CSS */}
-        <div className="space-x-4"> {/* Flexbox for spacing */}
-        {/* Added classes for styling */}
-        <button
-          className="register"
-          onClick={() => navigate("/register")}
-        >
-          Register
-        </button>
-        {/* Added classes */}
-        <button
-          className="login"
-          onClick={() => navigate("/login")}
-        >
-          Login
-        </button>
-        <button
-          className="dashboard"
-          onClick={() => navigate("/dashboard")}
-        >
-          Dashboard
-        </button>
 
+  return (
+    <div className="bg-gray-100 min-h-screen flex flex-col">
+      {/* Navbar */}
+      <nav className="p-4 flex justify-end">
+        <div className="space-x-4">
+          <button
+            className="register px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+            onClick={() => navigate("/register")}
+          >
+            Register
+          </button>
+          <button
+            className="login px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+            onClick={() => navigate("/login")}
+          >
+            Login
+          </button>
+          <button
+            className="dashboard px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600"
+            onClick={() => navigate("/dashboard")}
+          >
+            Dashboard
+          </button>
         </div>
       </nav>
-      <div className="hero"> {/* Added hero class */}
+
+      {/* Hero Section */}
+      <div className="hero flex-grow flex flex-col items-center justify-center text-center">
         <div>
-          <h1>
+          <h1 className="text-gray-800 text-3xl font-bold">
             WELCOME TO WALLY'S BUDGETING APP
           </h1>
-          <p>
+          <p className="text-gray-600">
             Want to track your finances but don't know how?
           </p>
-          <p>
-            Let's help you get it done!
-          </p>
-        {/* Added class */}
-        <button
-          className="get-started"
+          <p className="text-gray-600">Let's help you get it done!</p>
+          <button
+          className="mt-4 px-6 py-2 bg-blue-500 text-gray-800 rounded-lg hover:bg-blue-600"
           onClick={() => navigate("/register")}
-        >
+          >
           Get Started
-        </button>
+          </button>
 
 
         </div>

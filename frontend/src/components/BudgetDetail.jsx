@@ -1,42 +1,85 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState, useContext } from "react";
+import { BudgetContext } from "../context/BudgetContext";
+import { useParams } from "react-router-dom";
+import { toast } from "react-toastify";
 
+const BudgetDetail = () => {
+  const { budgetId } = useParams(); // Get budgetId from the URL
+  const { fetchBudgetById } = useContext(BudgetContext);
+  const [budget, setBudget] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-const ExpenseCard = ({ expense }) => {
-  const navigate = useNavigate();
+  useEffect(() => {
+    if (!budgetId) {
+      setError("Invalid budget ID.");
+      setLoading(false);
+      return;
+    }
 
-  if (!expense) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="bg-red-100 p-6 rounded-lg shadow-lg text-center">
-          <p className="text-red-500 text-lg font-semibold">No expense found!</p>
-          <button
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg shadow"
-            onClick={() => navigate("/expenses")}
-          >
-            Back to Expenses
-          </button>
-        </div>
-      </div>
-    );
-  }
+    const loadBudget = async () => {
+      try {
+        console.log("Fetching budget with ID:", budgetId);
+        const data = await fetchBudgetById(budgetId);
+        if (data) {
+          setBudget(data);
+        } else {
+          setError("Budget not found.");
+        }
+      } catch (error) {
+        setError("Error fetching budget.");
+        toast.error("Error fetching budget.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadBudget();
+  }, [budgetId, fetchBudgetById]);
+
+  if (loading) return <p>Loading...</p>;
+  if (error) return <p>{error}</p>;
+  if (!budget) return <p>No budget found.</p>;
 
   return (
-    <div className="flex justify-center items-center h-screen">
-      <div className="bg-white p-6 rounded-2xl shadow-lg w-96 border border-gray-200">
-        <h2 className="text-xl font-semibold text-gray-800">{expense.name}</h2>
-        <p className="text-gray-600 text-sm mb-4">{expense.category}</p>
-        <p className="text-2xl font-bold text-green-500">${expense.price}</p>
-        <p className="text-gray-500 text-sm">{new Date(expense.date).toLocaleDateString()}</p>
-        <button
-          className="mt-4 w-full bg-blue-500 text-white py-2 rounded-lg shadow"
-          onClick={() => navigate("/expenses")}
-        >
-          Back to Expenses
-        </button>
-      </div>
+    <div className="budget-detail">
+      <h2>{budget.category}</h2>
+      {budget.image_url && <img src={budget.image_url} alt={budget.category} className="budget-image" />}
+      <p>Limit: KES {budget.limit}</p>
+      <p>Current Spent: KES {budget.current_spent}</p>
+      <p className={`status ${budget.current_spent > budget.limit ? "over-budget" : "within-budget"}`}>
+        {budget.current_spent > budget.limit ? "Over Budget!" : "Within Budget"}
+      </p>
     </div>
   );
 };
 
-export default ExpenseCard;
+export default BudgetDetail;
+
+// Update fetchBudgetById function inside BudgetContext
+export const fetchBudgetById = async (budgetId) => {
+  try {
+    if (!budgetId) throw new Error("Invalid budget ID.");
+
+    const token = localStorage.getItem("token");
+    if (!token) throw new Error("No authentication token found.");
+
+    const response = await fetch(`http://127.0.0.1:5000/budgets/${budgetId}`, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json"
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch budget.");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Fetch single budget error:", error);
+    toast.error("Error fetching budget.");
+    return null;
+  }
+};
