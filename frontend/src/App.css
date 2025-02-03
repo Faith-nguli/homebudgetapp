@@ -94,8 +94,8 @@ nav button:hover { /* Hover effect for buttons */
   justify-content: center;
   text-align: center;
   padding: 4rem 0;
-  background-color: #f3f4f6; /* Light gray */
-  border: 2px solid red; /* Temporary for debugging */
+  background-color: #DDDDDD; /* Light gray */
+  border: 2px solid white; /* Temporary for debugging */
   color: #333;
 }
 
