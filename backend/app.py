@@ -113,8 +113,18 @@ def create_app():
            
             'savings': budget.savings
         } for budget in budgets]), 200
+    
+        # Route to fetch all budgets (RESTful - uses path parameter)
+    @app.route('/user/<int:user_id>/budgets', methods=['GET'])  # RESTful URL
+    @jwt_required()
+    def get_budgets(user_id):
+        current_user_id = get_jwt_identity()
+        if current_user_id != user_id:
+            return jsonify({'msg': 'Unauthorized'}), 403
 
-    # Other routes (update, delete) omitted for brevity
+        budgets = Budget.query.filter_by(user_id=user_id).all()
+        return jsonify([budget.to_dict() for budget in budgets]), 200  
+
     
     # Database configuration
     app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://budgetdb_0wm2_user:JykS6CpCdBnhqdwWVtcFNT3hxEn6K8lp@dpg-cuh065qj1k6c73b3hm4g-a.oregon-postgres.render.com/budgetdb_0wm2'
