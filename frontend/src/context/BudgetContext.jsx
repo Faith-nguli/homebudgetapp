@@ -19,7 +19,7 @@ export const BudgetProvider = ({ children }) => {
         throw new Error("No token found. Please log in.");
       }
   
-      const response = await fetch("http://127.0.0.1:5000/budgets", {
+      const response = await fetch("https://homebudgetapp.onrender.com/budgets", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -43,7 +43,7 @@ export const BudgetProvider = ({ children }) => {
   // 🔹 FETCH SINGLE BUDGET BY ID
   const fetchBudgetById = async (budget_id) => {
     try {
-      const response = await fetch(`http://127.0.0.1:5000/budget/${budget_id}`);
+      const response = await fetch(`https://homebudgetapp.onrender.com/budget/${budget_id}`);
 
       if (!response.ok) {
         throw new Error("Failed to fetch budget.");
@@ -67,7 +67,7 @@ export const BudgetProvider = ({ children }) => {
     const toastId = toast.loading("Uploading image...");
 
     try {
-      const response = await fetch("http://127.0.0.1:5000/budgets/upload", {
+      const response = await fetch("https://homebudgetapp.onrender.com/budgets/upload", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -103,7 +103,7 @@ export const BudgetProvider = ({ children }) => {
     toast.loading("Adding budget...");
 
     try {
-      const response = await fetch("http://127.0.0.1:5000/budgets", {
+      const response = await fetch("https://homebudgetapp.onrender.com/budgets", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -133,7 +133,7 @@ export const BudgetProvider = ({ children }) => {
     toast.loading("Updating budget...");
 
     try {
-      const response = await fetch(`http://127.0.0.1:5000/budgets/${budget_id}`, {
+      const response = await fetch(`https://homebudgetapp.onrender.com/budgets/${budget_id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -167,7 +167,7 @@ export const BudgetProvider = ({ children }) => {
     toast.loading("Deleting budget...");
 
     try {
-      const response = await fetch(`http://127.0.0.1:5000/budgets/${budget_id}`, {
+      const response = await fetch(`https://homebudgetapp.onrender.com/budgets/${budget_id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,

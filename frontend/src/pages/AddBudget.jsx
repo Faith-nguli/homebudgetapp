@@ -52,58 +52,62 @@ function AddBudget() {
       .catch(err => console.error("Image upload failed", err));
   }
 
-  function handleSubmit(e) {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!budget.category) {
-      alert('Please select a category');
-      return;
+        alert("Please select a category");
+        return;
     }
 
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (!token) {
-      alert('User is not authenticated');
-      return;
+        alert("User is not authenticated");
+        return;
     }
+
+    // Ensure expense_id is either a valid ID or null
+    const expenseIdToSend = budget.expense_id ? budget.expense_id : null;
 
     const budgetData = {
-      category: budget.category,
-      amount: parseFloat(budget.amount),
-      limit: parseFloat(budget.limit),
-
-      image_url: budget.image || null,
-
-      expense_id: budget.expense_id || 0 // Default value for expense_id
+        category: budget.category,
+        limit: parseFloat(budget.limit),
+        amount: budget.amount ? parseFloat(budget.amount) : 0, // Default to 0 if missing
+        image_url: budget.image || null,
+        expense_id: expenseIdToSend,
     };
 
-    fetch('http://localhost:5000/budgets', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify(budgetData),
-      credentials: 'include',
-    })
-      .then(async response => {
+    try {
+        const response = await fetch("https://homebudgetapp.onrender.com/budgets", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(budgetData),
+            credentials: "include",
+        });
+
         const text = await response.text();
+        let data;
         try {
-          const data = JSON.parse(text);
-          if (!response.ok) throw new Error(data.error || `Server error: ${response.status}`);
-          return data;
-        } catch (err) {
-          console.error("Invalid JSON response:", text);
-          throw new Error("Invalid JSON response from server");
+            data = JSON.parse(text);
+        } catch {
+            throw new Error("Invalid JSON response from server");
         }
-      })
-      .then(data => {
-        console.log('Success:', data);
-        navigate('/dashboard');
-      })
-      .catch(error => {
-        console.error('Error submitting budget:', error);
-        alert('Failed to submit budget: ' + error.message);
-      });
-  }
+
+        if (!response.ok) {
+            throw new Error(data.error || `Server error: ${response.status}`);
+        }
+
+        console.log("Budget created successfully:", data);
+        navigate("/dashboard"); // Redirect after successful submission
+    } catch (error) {
+        console.error("Error submitting budget:", error);
+        alert("Failed to submit budget: " + error.message);
+    }
+};
+
 
   return (
     <div className="add-budget-form">

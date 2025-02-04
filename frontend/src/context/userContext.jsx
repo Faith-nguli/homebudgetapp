@@ -21,7 +21,7 @@ export const UserProvider = ({ children }) => {
 
   const fetchCurrentUser = async (token) => {
     try {
-      const res = await fetch("http://127.0.0.1:5000/user", {
+      const res = await fetch("https://homebudgetapp.onrender.com/user", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -52,7 +52,7 @@ export const UserProvider = ({ children }) => {
     const toastId = toast.loading("Logging you in...");
 
     try {
-      const response = await fetch("http://127.0.0.1:5000/login", {
+      const response = await fetch("https://homebudgetapp.onrender.com/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -104,7 +104,7 @@ export const UserProvider = ({ children }) => {
   const addUser = async (username, email, password) => {
     const toastId = toast.loading("Registering you...");
     try {
-      const response = await fetch("http://127.0.0.1:5000/user", {
+      const response = await fetch("https://homebudgetapp.onrender.com/user", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -151,7 +151,7 @@ export const UserProvider = ({ children }) => {
 
   const updateUser = async (userId, updatedInfo) => {
     try {
-      const res = await fetch(`http://127.0.0.1:5000/user/${userId}`, {
+      const res = await fetch(`https://homebudgetapp.onrender.com/user/${userId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -175,7 +175,7 @@ export const UserProvider = ({ children }) => {
 
   const deleteUser = async (userId) => {
     try {
-      const res = await fetch(`http://127.0.0.1:5000/user/${userId}`, {
+      const res = await fetch(`https://homebudgetapp.onrender.com/user/${userId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${authToken}`,
