@@ -20,10 +20,21 @@ const Dashboard = () => {
       try {
         const token = localStorage.getItem("token");
         if (!token) {
-          throw new Error("Unauthorized: No token found.");
+          console.log("Token not found.");
+          setError("Authentication token is missing.");
+          return;
         }
 
+        console.log("Token:", token);
+
         const user = jwt_decode(token);
+        console.log("Decode User:", user);
+
+        if(!user_id) {
+          console.error("User ID not found.");
+          setError("Invalid user data.");
+          return;
+        }
         const response = await fetch(
           `https://homebudgetapp-1.onrender.com/user/${user.id}/budgets`,
           {
@@ -36,12 +47,14 @@ const Dashboard = () => {
         );
 
         if (!response.ok) {
-          throw new Error("Failed to fetch budgets");
+          throw new Error(`Failed to fetch budgets: ${response.statusText}`);
         }
 
         const responseBody = await response.json();
+        console.log("Fetched Budgets:", responseBody);
         setBudgets(responseBody);
       } catch (error) {
+        console.error("Fetch budgets error:", error);
         setError(error.message);
       } finally {
         setLoading(false);
