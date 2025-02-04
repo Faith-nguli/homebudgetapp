@@ -19,10 +19,10 @@ const Dashboard = () => {
         if (!token) throw new Error("No token found");
 
         const decodedToken = jwt_decode(token);
-        const userId = decodedToken.sub;
-        if (!userId) throw new Error("Invalid token: missing user ID");
+        const user_id = decodedToken.sub;
+        if (!user_id) throw new Error("Invalid token: missing user ID");
 
-        const response = await fetch(`http://localhost:5000/budgets?user_id=${userId}`, {
+        const response = await fetch(`https://homebudgetapp-1.onrender.com/user/${user_id}/budgets`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -55,7 +55,7 @@ const Dashboard = () => {
     if (!window.confirm("Are you sure you want to delete this budget?")) return;
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`http://localhost:5000/budgets/${budget_id}`, {
+      const response = await fetch(`https://homebudgetapp-1.onrender.com/${budget_id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -93,7 +93,7 @@ const Dashboard = () => {
 
       console.log("Sending update:", updatedData); // Debugging log
 
-      const response = await fetch(`http://localhost:5000/budgets/${editingBudget.id}`, {
+      const response = await fetch(`https://homebudgetapp-1.onrender.com/budgets/${editingBudget.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

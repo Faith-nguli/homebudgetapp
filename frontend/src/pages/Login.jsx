@@ -24,7 +24,7 @@ export default function Login() {
     }
 
     try {
-      const response = await fetch("https://homebudgetapp.onrender.com/login", {
+      const response = await fetch("https://homebudgetapp-1.onrender.com/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

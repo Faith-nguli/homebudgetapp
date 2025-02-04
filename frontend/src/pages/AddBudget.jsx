@@ -74,7 +74,7 @@ function AddBudget() {
     };
 
     try {
-        const response = await fetch("https://homebudgetapp.onrender.com/budgets", {
+        const response = await fetch("https://homebudgetapp-1.onrender.com/budgets", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

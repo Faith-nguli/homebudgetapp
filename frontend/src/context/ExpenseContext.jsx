@@ -13,7 +13,7 @@ export const ExpenseProvider = ({ children }) => {
 
   const fetchExpenses = async () => {
     try {
-      const response = await fetch("https://homebudgetapp.onrender.com/expense", {
+      const response = await fetch("https://homebudgetapp-1.onrender.com/expense", {
         method: "GET",
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       }
@@ -37,7 +37,7 @@ export const ExpenseProvider = ({ children }) => {
     toast.loading("Adding expense...");
 
     try {
-      const response = await fetch("https://homebudgetapp.onrender.com/expense", {
+      const response = await fetch("https://homebudgetapp-1.onrender.com/expense", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(expenseData),
@@ -64,7 +64,7 @@ export const ExpenseProvider = ({ children }) => {
     toast.loading("Updating expense...");
 
     try {
-      const response = await fetch(`https://homebudgetapp.onrender.com/expense/${expenseId}`, {
+      const response = await fetch(`https://homebudgetapp-1.onrender.com/expense/${expenseId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updatedData),
@@ -95,7 +95,7 @@ export const ExpenseProvider = ({ children }) => {
     toast.loading("Deleting expense...");
 
     try {
-      const response = await fetch(`https://homebudgetapp.onrender.com/expense/${expenseId}`, {
+      const response = await fetch(`https://homebudgetapp-1.onrender.com/expense/${expenseId}`, {
         method: "DELETE",
       });
 

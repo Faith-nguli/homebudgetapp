@@ -37,7 +37,7 @@ function Profile() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const response = await fetch("http://127.0.0.1:5000/user/profile", {
+        const response = await fetch("https://homebudgetapp-1.onrender.com/user/profile", {
           method: "GET",
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
@@ -76,7 +76,7 @@ function Profile() {
   const handleSave = async () => {
     setLoading(true);
     try {
-      const response = await fetch("http://127.0.0.1:5000/user/update", {
+      const response = await fetch("https://homebudgetapp-1.onrender.com/user/update", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -103,7 +103,7 @@ function Profile() {
     if (!window.confirm("Are you sure you want to delete your profile?")) return;
 
     try {
-      const response = await fetch("http://127.0.0.1:5000/user", {
+      const response = await fetch("https://homebudgetapp-1.onrender.com/user", {
         method: "DELETE",
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
@@ -129,7 +129,7 @@ function Profile() {
     }
 
     try {
-      const response = await fetch("http://127.0.0.1:5000/user/change-password", {
+      const response = await fetch("https://homebudgetapp-1.onrender.com/user/change-password", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
