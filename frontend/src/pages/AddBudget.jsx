@@ -61,18 +61,16 @@ function AddBudget() {
 
     const token = localStorage.getItem("token");
     if (!token) {
-        alert("User is not authenticated");
+        alert("User is not authenticated. Please log in.");
+        navigate("/login");
         return;
     }
-
-   
 
     const budgetData = {
         category: budget.category,
         limit: parseFloat(budget.limit),
-        amount: budget.amount ? parseFloat(budget.amount) : 0, // Default to 0 if missing
-        image_url: budget.image || null
-        
+        amount: budget.amount ? parseFloat(budget.amount) : 0,
+        image_url: budget.image || null,
     };
 
     try {
@@ -80,11 +78,18 @@ function AddBudget() {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
+                Authorization: `Bearer ${token}`, // Ensure token is included
             },
             body: JSON.stringify(budgetData),
             credentials: "include",
         });
+
+        if (response.status === 401) {
+            alert("Session expired. Please log in again.");
+            localStorage.removeItem("token");
+            navigate("/login");
+            return;
+        }
 
         const text = await response.text();
         let data;
@@ -99,7 +104,7 @@ function AddBudget() {
         }
 
         console.log("Budget created successfully:", data);
-        navigate("/dashboard"); // Redirect after successful submission
+        navigate("/dashboard");
     } catch (error) {
         console.error("Error submitting budget:", error);
         alert("Failed to submit budget: " + error.message);
