@@ -10,8 +10,7 @@ function AddBudget() {
     category: '',
     amount: '',
     limit: '',
-    image: '',
-    expense_id: ''
+    image: ''
   });
 
   function handleChange(e) {
@@ -66,15 +65,14 @@ function AddBudget() {
         return;
     }
 
-    // Ensure expense_id is either a valid ID or null
-    const expenseIdToSend = budget.expense_id ? budget.expense_id : null;
+   
 
     const budgetData = {
         category: budget.category,
         limit: parseFloat(budget.limit),
         amount: budget.amount ? parseFloat(budget.amount) : 0, // Default to 0 if missing
-        image_url: budget.image || null,
-        expense_id: expenseIdToSend,
+        image_url: budget.image || null
+        
     };
 
     try {

@@ -149,7 +149,7 @@ export const BudgetProvider = ({ children }) => {
       const updatedBudget = await response.json();
       setBudgets((prevBudgets) =>
         prevBudgets.map((budget) =>
-          budget.id === budgetId ? updatedBudget : budget
+          budget.id === budget_id ? updatedBudget : budget
         )
       );
 
