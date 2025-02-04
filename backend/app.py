@@ -117,7 +117,7 @@ def create_app():
         # Route to fetch all budgets (RESTful - uses path parameter)
     @app.route('/user/<int:user_id>/budgets', methods=['GET'])  # RESTful URL
     @jwt_required()
-    def get_budgets(user_id):
+    def get_user_budgets(user_id):
         current_user_id = get_jwt_identity()
         if current_user_id != user_id:
             return jsonify({'msg': 'Unauthorized'}), 403
