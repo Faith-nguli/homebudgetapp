@@ -117,7 +117,7 @@ def create_app():
     # Other routes (update, delete) omitted for brevity
     
     # Database configuration
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://budget_db_a98a_user:43XTLbNNLBTlsw2gBO9G5j06dBugQBlD@dpg-cugrc4i3esus73fg8s50-a.oregon-postgres.render.com/budget_db_a98a'
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://budgetdb_0wm2_user:JykS6CpCdBnhqdwWVtcFNT3hxEn6K8lp@dpg-cuh065qj1k6c73b3hm4g-a.oregon-postgres.render.com/budgetdb_0wm2'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     # JWT configuration

@@ -35,6 +35,7 @@ class Budget(db.Model):
     current_spent = db.Column(db.Float, default=0.0, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     image_url = db.Column(db.String(255), nullable=True)
+    
 
     @property
     def current_spent(self):
