@@ -49,9 +49,7 @@ def upgrade():
     sa.Column('category', sa.String(length=100), nullable=False),
     sa.Column('limit', sa.Float(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
-    sa.Column('expense_id', sa.Integer(), nullable=False),
     sa.Column('image_url', sa.String(length=255), nullable=True),
-    sa.ForeignKeyConstraint(['expense_id'], ['expense.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id')
     )

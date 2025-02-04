@@ -60,13 +60,7 @@ def create_app():
             if not data.get('limit'):
                 return jsonify({"error": "Limit is required"}), 422
 
-            # expense_id = data.get('expense_id')
-
-            # # Ensure expense_id is valid (exists in expense table)
-            # if expense_id is not None:
-            #     expense_exists = Expense.query.filter_by(id=expense_id).first()
-            #     if not expense_exists:
-            #         return jsonify({"error": f"Expense with ID {expense_id} does not exist"}), 400
+         
 
             # Create budget
             try:
@@ -75,7 +69,7 @@ def create_app():
                     limit=float(data['limit']),
                     user_id=current_user_id,
                     image_url=data.get('image_url'),
-                    # expense_id=expense_id if expense_id else None,  # Set to None if missing
+                   
                 )
 
                 db.session.add(budget)
