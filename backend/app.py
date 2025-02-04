@@ -186,7 +186,7 @@ def create_app():
         return {"msg": "Budget deleted successfully"}, 200
 
     # Database configuration
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///budget.db'
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://budget_db_a98a_user:43XTLbNNLBTlsw2gBO9G5j06dBugQBlD@dpg-cugrc4i3esus73fg8s50-a.oregon-postgres.render.com/budget_db_a98a'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     # File upload configuration
@@ -224,7 +224,8 @@ def create_app():
 
     return app
 
+app = create_app()
+
 # Ensure script runs Flask correctly
 if __name__ == "__main__":
-    app = create_app()
     app.run(debug=True)
