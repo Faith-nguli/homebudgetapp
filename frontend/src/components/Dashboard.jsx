@@ -14,27 +14,32 @@ const Dashboard = () => {
 
   useEffect(() => {
     const fetchBudgets = async () => {
+      setLoading(true);
+      setError(null);
+
       try {
         const token = localStorage.getItem("token");
-        if (!token) throw new Error("No token found");
-
-        const decodedToken = jwt_decode(token);
-        const user_id = decodedToken.sub;
-        if (!user_id) throw new Error("Invalid token: missing user ID");
-
-        const response = await fetch(`https://homebudgetapp-1.onrender.com/user/${user_id}/budgets`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        const responseBody = await response.json();
-        if (!response.ok) {
-          throw new Error(responseBody.msg || "Failed to fetch budgets");
+        if (!token) {
+          throw new Error("Unauthorized: No token found.");
         }
 
+        const user = jwt_decode(token);
+        const response = await fetch(
+          `https://homebudgetapp-1.onrender.com/user/${user.id}/budgets`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch budgets");
+        }
+
+        const responseBody = await response.json();
         setBudgets(responseBody);
       } catch (error) {
         setError(error.message);
@@ -42,7 +47,6 @@ const Dashboard = () => {
         setLoading(false);
       }
     };
-
     fetchBudgets();
   }, []);
 
@@ -55,13 +59,16 @@ const Dashboard = () => {
     if (!window.confirm("Are you sure you want to delete this budget?")) return;
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`https://homebudgetapp-1.onrender.com/${budget_id}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+      const response = await fetch(
+        `https://homebudgetapp-1.onrender.com/budgets/${budget_id}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
       if (!response.ok) throw new Error("Failed to delete budget");
 
       setBudgets((prev) => prev.filter((budget) => budget.id !== budget_id));
@@ -91,22 +98,23 @@ const Dashboard = () => {
         image_url: editingBudget.image_url || null,
       };
 
-      console.log("Sending update:", updatedData); // Debugging log
+      const response = await fetch(
+        `https://homebudgetapp-1.onrender.com/budgets/${editingBudget.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(updatedData),
+        }
+      );
 
-      const response = await fetch(`https://homebudgetapp-1.onrender.com/budgets/${editingBudget.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(updatedData),
-      });
-
-      const updatedBudget = await response.json();
       if (!response.ok) {
-        throw new Error(updatedBudget.error || "Failed to update budget");
+        throw new Error("Failed to update budget");
       }
 
+      const updatedBudget = await response.json();
       setBudgets((prev) =>
         prev.map((budget) => (budget.id === editingBudget.id ? updatedBudget : budget))
       );
@@ -145,42 +153,11 @@ const Dashboard = () => {
         <div className="budget-grid">
           {budgets.map((budget) => (
             <Card key={budget.id} className="budget-card">
-              {editingBudget && editingBudget.id === budget.id ? (
-                <div>
-                  <input
-                    type="text"
-                    value={editingBudget.category}
-                    onChange={(e) => setEditingBudget({ ...editingBudget, category: e.target.value })}
-                  />
-                  <input
-                    type="number"
-                    value={editingBudget.limit}
-                    onChange={(e) => setEditingBudget({ ...editingBudget, limit: Number(e.target.value) })}
-                  />
-                  <Button onClick={handleSaveEdit}>Save</Button>
-                  <Button onClick={() => setEditingBudget(null)}>Cancel</Button>
-                </div>
-              ) : (
-                <div className="budget-content">
-                  <img
-                    src={budget.image_url || "https://via.placeholder.com/100"}
-                    alt={budget.category}
-                    className="budget-image"
-                  />
-                  <h3 className="budget-category">{budget.category}</h3>
-                  <p className="budget-amount">Spent: KES {budget.current_spent.toLocaleString()}</p>
-                  <p className="budget-amount">Limit: KES {budget.limit.toLocaleString()}</p>
-                  <p className="budget-amount">
-                    Savings: KES {budget.savings ? budget.savings.toLocaleString() : "0"}
-                  </p>
-                  <p className={`budget-status ${budget.current_spent > budget.limit ? "over-budget" : "within-budget"}`}>
-                    {budget.current_spent > budget.limit ? "Over Budget!" : "Within Budget"}
-                  </p>
-                  <Button onClick={() => navigate(`/budget-detail/${budget.id}`)}>View Details</Button>
-                  <Button onClick={() => handleEdit(budget)}>Edit</Button>
-                  <Button onClick={() => handleDelete(budget.id)}>Delete</Button>
-                </div>
-              )}
+              <h3>{budget.category}</h3>
+              <p>Spent: KES {budget.current_spent.toLocaleString()}</p>
+              <p>Limit: KES {budget.limit.toLocaleString()}</p>
+              <Button onClick={() => handleEdit(budget)}>Edit</Button>
+              <Button onClick={() => handleDelete(budget.id)}>Delete</Button>
             </Card>
           ))}
         </div>
