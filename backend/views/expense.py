@@ -46,22 +46,32 @@ def create_expense():
         return jsonify({"error": f"Database error: {str(e)}"}), 500
 
 
-# GET all expenses
 @expense_bp.route("/expense", methods=["GET"])
 @jwt_required()
 def get_expenses():
-    user_id = get_jwt_identity()
-    expenses = Expense.query.filter_by(user_id=user_id).all()
-    expense_list = [
-        {
-            "id": expense.id,
-            "amount": expense.amount,
-            "category": expense.category,
-            "date": expense.date.strftime("%Y-%m-%d")  # Format date for JSON
-        }
-        for expense in expenses
-    ]
-    return jsonify(expense_list), 200
+    try:
+        user_id = get_jwt_identity()
+        expenses = Expense.query.filter_by(user_id=user_id).all()
+
+        if not expenses:
+            return jsonify({"success": True, "message": "No expenses found", "data": []}), 200
+
+        expense_list = [
+            {
+                "id": expense.id,
+                "amount": expense.amount,
+                "category": expense.category,
+                "date": expense.date.strftime("%Y-%m-%d")  # Format date for JSON
+            }
+            for expense in expenses
+        ]
+
+        return jsonify({"success": True, "data": expense_list}), 200 
+
+    except Exception as e:
+        print(f"Error fetching expenses: {e}")  # Log error for debugging
+        return jsonify({"success": False, "error": "Failed to fetch expenses"}), 500
+
 
 # GET expense by ID
 @expense_bp.route("/expense/<int:expense_id>", methods=["GET"])

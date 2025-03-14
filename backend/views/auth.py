@@ -4,18 +4,20 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from flask_jwt_extended import create_access_token, get_jwt_identity, get_jwt, jwt_required
 from flask_mail import Message
 from models import db, User, TokenBlocklist
+from app import mail
 
 auth_bp = Blueprint("auth_bp", __name__)
 
 @auth_bp.route("/user", methods=['POST'])
 def create_user():
-    from app import mail
     data = request.get_json()
-    
+
+    # Extract user data
     username = data.get('username')
     email = data.get('email')
     password = data.get('password')
 
+    # Validate input fields
     if not username or not email or not password:
         return jsonify({"success": False, "error": "Missing required fields"}), 400
 
@@ -29,13 +31,18 @@ def create_user():
         return jsonify({"success": False, "error": "Password must be at least 8 characters long"}), 400
 
     try:
+        # Hash password
         hashed_password = generate_password_hash(password)
+
+        # Create new user
         new_user = User(username=username, email=email, password=hashed_password)
         db.session.add(new_user)
         db.session.commit()
 
+        # Generate JWT token
         access_token = create_access_token(identity=new_user.id)
-        
+
+        # Send Welcome Email
         try:
             msg = Message(
                 subject="Welcome to Home Budget Application",
@@ -61,6 +68,7 @@ def create_user():
 
     except Exception as e:
         db.session.rollback()
+        print(f"Registration error: {e}")  # Logs the actual error
         return jsonify({"success": False, "error": "Registration failed. Please try again."}), 500
 
 @auth_bp.route("/login", methods=["POST"])

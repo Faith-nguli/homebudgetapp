@@ -30,13 +30,13 @@ const Dashboard = () => {
         const user = jwt_decode(token);
         console.log("Decode User:", user);
 
-        if(!user_id) {
+        if(!user.id) {
           console.error("User ID not found.");
           setError("Invalid user data.");
           return;
         }
         const response = await fetch(
-          `https://homebudgetapp-1.onrender.com/user/${user.id}/budgets`,
+          `https://homebudgetapp-1.onrender.com/user/${user_id}/budgets`,
           {
             method: "GET",
             headers: {

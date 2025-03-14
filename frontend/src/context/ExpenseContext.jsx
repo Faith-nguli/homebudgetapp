@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect } from "react";
+import React, { createContext, useState, useEffect, useCallback } from "react";
 import { toast } from "react-toastify";
 
 export const ExpenseContext = createContext();
@@ -7,18 +7,19 @@ export const ExpenseProvider = ({ children }) => {
   const [expenses, setExpenses] = useState([]);
 
   // 🔹 FETCH EXPENSES (Runs on load)
-  useEffect(() => {
-    fetchExpenses();
-  }, []);
-
-  const fetchExpenses = async () => {
+  const fetchExpenses = useCallback(async () => {
     try {
-      const response = await fetch("https://homebudgetapp-1.onrender.com/expense", {
-        method: "GET",
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No token found. Please log in.");
       }
 
-      );
+      const response = await fetch("https://homebudgetapp-1.onrender.com/expenses", {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+      });
 
       if (!response.ok) {
         throw new Error("Failed to fetch expenses.");
@@ -28,18 +29,30 @@ export const ExpenseProvider = ({ children }) => {
       setExpenses(data);
     } catch (error) {
       console.error("Fetch error:", error);
-      toast.error("Error fetching expenses.");
+      toast.error(error.message || "Error fetching expenses.");
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchExpenses();
+  }, [fetchExpenses]);
 
   // 🔹 ADD NEW EXPENSE
   const addExpense = async (expenseData) => {
-    toast.loading("Adding expense...");
+    const toastId = toast.loading("Adding expense...");
 
     try {
-      const response = await fetch("https://homebudgetapp-1.onrender.com/expense", {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No token found. Please log in.");
+      }
+
+      const response = await fetch("https://homebudgetapp-1.onrender.com/expenses", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
         body: JSON.stringify(expenseData),
       });
 
@@ -48,25 +61,40 @@ export const ExpenseProvider = ({ children }) => {
       }
 
       const newExpense = await response.json();
-      setExpenses((prevExpenses) => [...prevExpenses, newExpense]); 
+      setExpenses((prevExpenses) => [...prevExpenses, newExpense]);
 
-      toast.dismiss();
-      toast.success("Expense added successfully!");
+      toast.update(toastId, {
+        render: "Expense added successfully!",
+        type: "success",
+        isLoading: false,
+        autoClose: 3000,
+      });
     } catch (error) {
-      toast.dismiss();
-      console.error("Add expense error:", error);
-      toast.error("Error adding expense.");
+      toast.update(toastId, {
+        render: error.message || "Error adding expense.",
+        type: "error",
+        isLoading: false,
+        autoClose: 3000,
+      });
     }
   };
 
   // 🔹 UPDATE EXPENSE
   const updateExpense = async (expenseId, updatedData) => {
-    toast.loading("Updating expense...");
+    const toastId = toast.loading("Updating expense...");
 
     try {
-      const response = await fetch(`https://homebudgetapp-1.onrender.com/expense/${expenseId}`, {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No token found. Please log in.");
+      }
+
+      const response = await fetch(`https://homebudgetapp-1.onrender.com/expenses/${expenseId}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
         body: JSON.stringify(updatedData),
       });
 
@@ -81,22 +109,37 @@ export const ExpenseProvider = ({ children }) => {
         )
       );
 
-      toast.dismiss();
-      toast.success("Expense updated successfully!");
+      toast.update(toastId, {
+        render: "Expense updated successfully!",
+        type: "success",
+        isLoading: false,
+        autoClose: 3000,
+      });
     } catch (error) {
-      toast.dismiss();
-      console.error("Update error:", error);
-      toast.error("Error updating expense.");
+      toast.update(toastId, {
+        render: error.message || "Error updating expense.",
+        type: "error",
+        isLoading: false,
+        autoClose: 3000,
+      });
     }
   };
 
   // 🔹 DELETE EXPENSE
   const deleteExpense = async (expenseId) => {
-    toast.loading("Deleting expense...");
+    const toastId = toast.loading("Deleting expense...");
 
     try {
-      const response = await fetch(`https://homebudgetapp-1.onrender.com/expense/${expenseId}`, {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No token found. Please log in.");
+      }
+
+      const response = await fetch(`https://homebudgetapp-1.onrender.com/expenses/${expenseId}`, {
         method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
       });
 
       if (!response.ok) {
@@ -105,12 +148,19 @@ export const ExpenseProvider = ({ children }) => {
 
       setExpenses((prevExpenses) => prevExpenses.filter((expense) => expense.id !== expenseId));
 
-      toast.dismiss();
-      toast.success("Expense deleted successfully!");
+      toast.update(toastId, {
+        render: "Expense deleted successfully!",
+        type: "success",
+        isLoading: false,
+        autoClose: 3000,
+      });
     } catch (error) {
-      toast.dismiss();
-      console.error("Delete error:", error);
-      toast.error("Error deleting expense.");
+      toast.update(toastId, {
+        render: error.message || "Error deleting expense.",
+        type: "error",
+        isLoading: false,
+        autoClose: 3000,
+      });
     }
   };
 

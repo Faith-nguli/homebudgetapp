@@ -7,30 +7,36 @@ export const BudgetProvider = ({ children }) => {
   const [budgets, setBudgets] = useState([]);
   const [imageUrl, setImageUrl] = useState("");
 
-  // 🔹 FETCH BUDGETS (Runs on load)
+  // 🔹 Fetch Budgets (Runs on load if logged in)
   useEffect(() => {
-    fetchBudgets();
+    const token = localStorage.getItem("token");
+    if (token) {
+      fetchBudgets(token);
+    } else {
+      console.error("No token found. Please log in.");
+    }
   }, []);
 
   const fetchBudgets = async () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        throw new Error("No token found. Please log in.");
+        toast.error("No token found. Please log in.");
+        return;
       }
-  
+
       const response = await fetch("https://homebudgetapp-1.onrender.com/budgets", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,  // 🔹 Include token
+          Authorization: `Bearer ${token}`,
         },
       });
-  
+
       if (!response.ok) {
         throw new Error("Failed to fetch budgets.");
       }
-  
+
       const data = await response.json();
       setBudgets(data);
     } catch (error) {
@@ -38,9 +44,8 @@ export const BudgetProvider = ({ children }) => {
       toast.error(error.message);
     }
   };
-  
 
-  // 🔹 FETCH SINGLE BUDGET BY ID
+  // 🔹 Fetch Single Budget By ID
   const fetchBudgetById = async (budget_id) => {
     try {
       const response = await fetch(`https://homebudgetapp-1.onrender.com/budget/${budget_id}`);
@@ -57,6 +62,7 @@ export const BudgetProvider = ({ children }) => {
     }
   };
 
+  // 🔹 Handle Image Upload
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -67,10 +73,15 @@ export const BudgetProvider = ({ children }) => {
     const toastId = toast.loading("Uploading image...");
 
     try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No token found. Please log in.");
+      }
+
       const response = await fetch("https://homebudgetapp-1.onrender.com/budgets/upload", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${token}`,
         },
         body: formData,
       });
@@ -98,16 +109,21 @@ export const BudgetProvider = ({ children }) => {
     }
   };
 
-  // 🔹 ADD NEW BUDGET
+  // 🔹 Add New Budget
   const addBudget = async (budgetData) => {
-    toast.loading("Adding budget...");
+    const toastId = toast.loading("Adding budget...");
 
     try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No token found. Please log in.");
+      }
+
       const response = await fetch("https://homebudgetapp-1.onrender.com/budgets", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(budgetData),
       });
@@ -119,25 +135,38 @@ export const BudgetProvider = ({ children }) => {
       const newBudget = await response.json();
       setBudgets((prevBudgets) => [...prevBudgets, newBudget]);
 
-      toast.dismiss();
-      toast.success("Budget added successfully!");
+      toast.update(toastId, {
+        render: "Budget added successfully!",
+        type: "success",
+        isLoading: false,
+        autoClose: 3000,
+      });
     } catch (error) {
-      toast.dismiss();
+      toast.update(toastId, {
+        render: error.message || "Error adding budget.",
+        type: "error",
+        isLoading: false,
+        autoClose: 3000,
+      });
       console.error("Add budget error:", error);
-      toast.error("Error adding budget.");
     }
   };
 
-  // 🔹 UPDATE BUDGET
+  // 🔹 Update Budget
   const updateBudget = async (budget_id, updatedData) => {
-    toast.loading("Updating budget...");
+    const toastId = toast.loading("Updating budget...");
 
     try {
-      const response = await fetch(`https://homebudgetapp-1.onrender.combudgets/${budget_id}`, {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No token found. Please log in.");
+      }
+
+      const response = await fetch(`https://homebudgetapp-1.onrender.com/budgets/${budget_id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(updatedData),
       });
@@ -153,24 +182,37 @@ export const BudgetProvider = ({ children }) => {
         )
       );
 
-      toast.dismiss();
-      toast.success("Budget updated successfully!");
+      toast.update(toastId, {
+        render: "Budget updated successfully!",
+        type: "success",
+        isLoading: false,
+        autoClose: 3000,
+      });
     } catch (error) {
-      toast.dismiss();
+      toast.update(toastId, {
+        render: error.message || "Error updating budget.",
+        type: "error",
+        isLoading: false,
+        autoClose: 3000,
+      });
       console.error("Update error:", error);
-      toast.error("Error updating budget.");
     }
   };
 
-  // 🔹 DELETE BUDGET
+  // 🔹 Delete Budget
   const deleteBudget = async (budget_id) => {
-    toast.loading("Deleting budget...");
+    const toastId = toast.loading("Deleting budget...");
 
     try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No token found. Please log in.");
+      }
+
       const response = await fetch(`https://homebudgetapp-1.onrender.com/budgets/${budget_id}`, {
         method: "DELETE",
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -180,12 +222,20 @@ export const BudgetProvider = ({ children }) => {
 
       setBudgets((prevBudgets) => prevBudgets.filter((budget) => budget.id !== budget_id));
 
-      toast.dismiss();
-      toast.success("Budget deleted successfully!");
+      toast.update(toastId, {
+        render: "Budget deleted successfully!",
+        type: "success",
+        isLoading: false,
+        autoClose: 3000,
+      });
     } catch (error) {
-      toast.dismiss();
+      toast.update(toastId, {
+        render: error.message || "Error deleting budget.",
+        type: "error",
+        isLoading: false,
+        autoClose: 3000,
+      });
       console.error("Delete error:", error);
-      toast.error("Error deleting budget.");
     }
   };
 
