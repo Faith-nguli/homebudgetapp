@@ -3,7 +3,7 @@ from flask import Blueprint
 from werkzeug.security import check_password_hash, generate_password_hash
 from flask_jwt_extended import create_access_token, jwt_required
 from flask_mail import Message
-from models import User
+from models import User, db, TokenBlocklist
 
 auth_bp = Blueprint("auth_bp", __name__)
 
