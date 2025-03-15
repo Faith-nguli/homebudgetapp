@@ -152,6 +152,11 @@ def create_app():
         jti = jwt_payload.get("jti")
         return db.session.query(TokenBlocklist.id).filter_by(jti=jti).scalar() is not None
 
+    @app.route("/")
+    def home():
+        return "Welcome to Home Budget App!", 200
+
+
     # Register blueprints
     app.register_blueprint(auth_bp)
     app.register_blueprint(user_bp)
