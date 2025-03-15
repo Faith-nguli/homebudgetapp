@@ -1,48 +1,39 @@
-from datetime import datetime, timezone
-from flask import Blueprint, request, jsonify
+from datetime import datetime
+from flask import Blueprint
 from werkzeug.security import check_password_hash, generate_password_hash
-from flask_jwt_extended import create_access_token, get_jwt_identity, get_jwt, jwt_required
-from flask_mail import Message, Mail
-from models import db, User, TokenBlocklist
-
+from flask_jwt_extended import create_access_token, jwt_required
+from flask_mail import Message
+from models import User
 
 auth_bp = Blueprint("auth_bp", __name__)
 
 @auth_bp.route("/user", methods=['POST'])
 def create_user():
-    data = request.get_json()
-
-    # Extract user data
-    username = data.get('username')
-    email = data.get('email')
-    password = data.get('password')
-
-    # Validate input fields
-    if not username or not email or not password:
-        return jsonify({"success": False, "error": "Missing required fields"}), 400
-
-    if User.query.filter_by(username=username).first():
-        return jsonify({"success": False, "error": "Username already exists"}), 400
-    
-    if User.query.filter_by(email=email).first():
-        return jsonify({"success": False, "error": "Email already exists"}), 400
-
-    if len(password) < 8:
-        return jsonify({"success": False, "error": "Password must be at least 8 characters long"}), 400
-
     try:
-        # Hash password
-        hashed_password = generate_password_hash(password)
+        from app import mail  # Lazy import to avoid circular import
+        data = request.get_json()
 
-        # Create new user
+        username = data.get('username', '').strip()
+        email = data.get('email', '').strip().lower()
+        password = data.get('password', '')
+
+        if not username or not email or not password:
+            return jsonify({"success": False, "error": "Missing required fields"}), 400
+        if len(password) < 8:
+            return jsonify({"success": False, "error": "Password must be at least 8 characters long"}), 400
+        if User.query.filter_by(username=username).first():
+            return jsonify({"success": False, "error": "Username already exists"}), 400
+        if User.query.filter_by(email=email).first():
+            return jsonify({"success": False, "error": "Email already exists"}), 400
+
+        hashed_password = generate_password_hash(password)
         new_user = User(username=username, email=email, password=hashed_password)
+
         db.session.add(new_user)
         db.session.commit()
 
-        # Generate JWT token
         access_token = create_access_token(identity=new_user.id)
-
-        # Send Welcome Email
+        
         try:
             msg = Message(
                 subject="Welcome to Home Budget Application",
@@ -51,7 +42,7 @@ def create_user():
             )
             mail.send(msg)
         except Exception as e:
-            print(f"Failed to send email: {e}")
+            print(f"⚠️ Email sending failed: {e}")
 
         return jsonify({
             "success": True,
@@ -68,7 +59,7 @@ def create_user():
 
     except Exception as e:
         db.session.rollback()
-        print(f"Registration error: {e}")  # Logs the actual error
+        print(f"❌ Registration error: {type(e).__name__}: {e}")
         return jsonify({"success": False, "error": "Registration failed. Please try again."}), 500
 
 @auth_bp.route("/login", methods=["POST"])

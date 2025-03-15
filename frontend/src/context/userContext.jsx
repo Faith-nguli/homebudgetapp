@@ -96,35 +96,39 @@ export const UserProvider = ({ children }) => {
     const toastId = toast.loading("Registering you...");
 
     try {
-      const response = await fetch("https://homebudgetapp-1.onrender.com/user", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: username.trim(),
-          email: email.trim().toLowerCase(),
-          password,
-        }),
-      });
+        const response = await fetch("https://homebudgetapp-1.onrender.com/user", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                username: username.trim(),
+                email: email.trim().toLowerCase(),
+                password,
+            }),
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: "Registration failed" }));
-        throw new Error(errorData.error || "Registration failed");
-      }
+        const responseData = await response.json(); // Parse JSON response
 
-      const responseData = await response.json();
-      if (!responseData.data?.access_token) throw new Error("No access token received");
+        if (!response.ok) {
+            throw new Error(responseData.error || "Registration failed");
+        }
 
-      sessionStorage.setItem("token", responseData.data.access_token);
-      setAuthToken(responseData.data.access_token);
-      await fetchCurrentUser(responseData.data.access_token);
+        if (!responseData.data?.access_token) {
+            throw new Error("No access token received");
+        }
 
-      toast.update(toastId, { render: "Registration successful! Redirecting...", type: "success", isLoading: false, autoClose: 2000 });
-      setTimeout(() => navigate("/dashboard"), 500);
+        // Save token & update auth state
+        sessionStorage.setItem("token", responseData.data.access_token);
+        setAuthToken(responseData.data.access_token);
+        await fetchCurrentUser(responseData.data.access_token);
+
+        toast.update(toastId, { render: "Registration successful! Redirecting...", type: "success", isLoading: false, autoClose: 2000 });
+        setTimeout(() => navigate("/dashboard"), 500);
     } catch (error) {
-      toast.update(toastId, { render: error.message || "Registration failed", type: "error", isLoading: false, autoClose: 3000 });
-      console.error("Registration error:", error);
+        toast.update(toastId, { render: error.message || "Registration failed", type: "error", isLoading: false, autoClose: 3000 });
+        console.error("❌ Registration error:", error);
     }
-  };
+};
+
 
   // Update User
   const updateUser = async (user_id, updatedInfo) => {
