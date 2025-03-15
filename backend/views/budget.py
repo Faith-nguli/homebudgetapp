@@ -55,3 +55,9 @@ def serve_budget_image(filename):
     return send_from_directory(UPLOAD_FOLDER, filename)
 
 
+@budget_bp.route('/budgets/<int:user_id>', methods=['GET'])
+def get_budgets(user_id):
+    budgets = Budget.query.filter_by(user_id=user_id).all()
+    return jsonify([budget.to_dict() for budget in budgets])
+
+

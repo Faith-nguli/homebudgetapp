@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect } from "react";
 import { toast } from "react-toastify";
+import jwtDecode from "jwt-decode";
 
 export const BudgetContext = createContext();
 
@@ -19,31 +20,45 @@ export const BudgetProvider = ({ children }) => {
 
   const fetchBudgets = async () => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        toast.error("No token found. Please log in.");
-        return;
-      }
+        const token = localStorage.getItem("token");
+        if (!token) {
+            toast.error("No token found. Please log in.");
+            return;
+        }
 
-      const response = await fetch("https://homebudgetapp-1.onrender.com/budgets", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
+        // Decode token to extract user ID
+        const decodedToken = jwtDecode(token);
+        console.log("Decoded Token:", decodedToken);
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch budgets.");
-      }
+        if (!decodedToken?.sub) {
+            toast.error("Invalid token. Please log in again.");
+            return;
+        }
 
-      const data = await response.json();
-      setBudgets(data);
+        const userId = decodedToken.sub;  // Extract user ID
+
+        // Fetch budgets for the specific user
+        const response = await fetch(`https://homebudgetapp-1.onrender.com/budgets/${userId}`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error("Failed to fetch budgets.");
+        }
+
+        const data = await response.json();
+        console.log("Fetched Budgets:", data);
+        setBudgets(data);
     } catch (error) {
-      console.error("Fetch error:", error);
-      toast.error(error.message);
+        console.error("Fetch error:", error);
+        toast.error(error.message);
     }
-  };
+};
+
 
   // 🔹 Fetch Single Budget By ID
   const fetchBudgetById = async (budget_id) => {
