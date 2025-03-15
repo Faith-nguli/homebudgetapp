@@ -127,7 +127,7 @@ def create_app():
 
     
     # Database configuration
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://budgetdb_0wm2_user:JykS6CpCdBnhqdwWVtcFNT3hxEn6K8lp@dpg-cuh065qj1k6c73b3hm4g-a.oregon-postgres.render.com/budgetdb_0wm2'
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///budget.db'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     # JWT configuration
