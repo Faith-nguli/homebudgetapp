@@ -1,5 +1,5 @@
 from datetime import datetime
-from flask import Blueprint
+from flask import Blueprint, request, jsonify
 from werkzeug.security import check_password_hash, generate_password_hash
 from flask_jwt_extended import create_access_token, jwt_required
 from flask_mail import Message
