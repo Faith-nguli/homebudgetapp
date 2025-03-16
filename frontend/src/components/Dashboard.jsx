@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import jwtDecode from "jwt-decode";
 import Button from "../components/Button";
-import ExpenseCard from "../components/ExpenseCard"; // Ensure this is correctly exported in ExpenseCard.jsx
+import ExpenseCard from "../components/ExpenseCard";
+
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -12,66 +13,71 @@ const Dashboard = () => {
   const [error, setError] = useState(null);
   const [editingBudget, setEditingBudget] = useState(null);
 
-  useEffect(() => {
-    const fetchBudgets = async () => {
-      setLoading(true);
-      setError(null);
+  // Fetch budgets from the server
+  const fetchBudgets = async () => {
+    setLoading(true);
+    setError(null);
 
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) throw new Error("Authentication token is missing.");
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("Authentication token is missing.");
 
-        const user = jwtDecode(token);
-        if (!user?.sub) throw new Error("Invalid user data.");
+      const user = jwtDecode(token);
+      if (!user?.sub) throw new Error("Invalid user data.");
 
-        const response = await fetch(
-          `https://homebudgetapp-1.onrender.com/budget/budgets`, // Corrected API URL
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+      const response = await fetch("https://homebudgetapp-1.onrender.com/budgets", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-        if (!response.ok) {
-          throw new Error(`Failed to fetch budgets: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        setBudgets(data);
-      } catch (error) {
-        console.error("Fetch budgets error:", error);
-        setError(error.message);
-      } finally {
-        setLoading(false);
+      if (response.status === 401) {
+        console.error("Unauthorized access. Redirecting to login.");
+        localStorage.removeItem("token");
+        navigate("/login");
+        return;
       }
-    };
 
+      if (!response.ok) {
+        throw new Error(`Failed to fetch budgets: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      setBudgets(data);
+    } catch (error) {
+      console.error("Fetch budgets error:", error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch budgets on component mount
+  useEffect(() => {
     fetchBudgets();
   }, []);
 
+  // Update current time every second
   useEffect(() => {
     const interval = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(interval);
   }, []);
 
+  // Handle budget deletion
   const handleDelete = async (budgetId) => {
     if (!window.confirm("Are you sure you want to delete this budget?")) return;
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(
-        `https://homebudgetapp-1.onrender.com/budget/budgets/${budgetId}`, // Corrected API URL
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const response = await fetch(`https://homebudgetapp-1.onrender.com/budgets/${budgetId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
 
       if (!response.ok) throw new Error("Failed to delete budget");
 
@@ -83,10 +89,12 @@ const Dashboard = () => {
     }
   };
 
+  // Handle budget edit
   const handleEdit = (budget) => {
     setEditingBudget({ ...budget });
   };
 
+  // Save edited budget
   const handleSaveEdit = async () => {
     if (!editingBudget || !editingBudget.id) {
       alert("Invalid budget data");
@@ -105,8 +113,8 @@ const Dashboard = () => {
         image_url: editingBudget.image_url || null,
       };
 
-      const response = await fetch(
-        `https://homebudgetapp-1.onrender.com/budget/budgets/${editingBudget.id}`, // Corrected API URL
+      const updateResponse = await fetch(
+        `https://homebudgetapp-1.onrender.com/budgets/${editingBudget.id}`,
         {
           method: "PUT",
           headers: {
@@ -117,15 +125,11 @@ const Dashboard = () => {
         }
       );
 
-      if (!response.ok) {
+      if (!updateResponse.ok) {
         throw new Error("Failed to update budget");
       }
 
-      const updatedBudget = await response.json();
-      setBudgets((prev) =>
-        prev.map((budget) => (budget.id === editingBudget.id ? updatedBudget : budget))
-      );
-
+      fetchBudgets(); // Refresh the list after updating
       setEditingBudget(null);
       alert("Budget updated successfully!");
     } catch (error) {
@@ -134,6 +138,7 @@ const Dashboard = () => {
     }
   };
 
+  // Calculate totals
   const totalExpenses = budgets.reduce((sum, budget) => sum + (budget.current_spent || 0), 0);
   const totalLimit = budgets.reduce((sum, budget) => sum + (budget.limit || 0), 0);
   const totalSavings = budgets.reduce((sum, budget) => sum + (budget.savings || 0), 0);
@@ -159,13 +164,14 @@ const Dashboard = () => {
       ) : (
         <div className="budget-grid">
           {budgets.map((budget) => (
-            <ExpenseCard key={budget.id} className="budget-card">
-              <h3>{budget.category}</h3>
-              <p>Spent: KES {budget.current_spent?.toLocaleString()}</p>
-              <p>Limit: KES {budget.limit?.toLocaleString()}</p>
-              <Button onClick={() => handleEdit(budget)}>Edit</Button>
-              <Button onClick={() => handleDelete(budget.id)}>Delete</Button>
-            </ExpenseCard>
+            <ExpenseCard
+              key={budget.id}
+              category={budget.category}
+              spent={budget.current_spent}
+              limit={budget.limit}
+              onEdit={() => handleEdit(budget)}
+              onDelete={() => handleDelete(budget.id)}
+            />
           ))}
         </div>
       )}
@@ -176,6 +182,38 @@ const Dashboard = () => {
         <p>Total Limit: KES {totalLimit.toLocaleString()}</p>
         <p>Total Savings: KES {totalSavings.toLocaleString()}</p>
       </div>
+
+      {editingBudget && (
+        <div className="edit-modal">
+          <h2>Edit Budget</h2>
+          <label>Category:</label>
+          <input
+            type="text"
+            value={editingBudget.category}
+            onChange={(e) => setEditingBudget({ ...editingBudget, category: e.target.value })}
+          />
+          <label>Limit (KES):</label>
+          <input
+            type="number"
+            value={editingBudget.limit}
+            onChange={(e) => setEditingBudget({ ...editingBudget, limit: e.target.value })}
+          />
+          <label>Current Spent (KES):</label>
+          <input
+            type="number"
+            value={editingBudget.current_spent}
+            onChange={(e) => setEditingBudget({ ...editingBudget, current_spent: e.target.value })}
+          />
+          <label>Savings (KES):</label>
+          <input
+            type="number"
+            value={editingBudget.savings}
+            onChange={(e) => setEditingBudget({ ...editingBudget, savings: e.target.value })}
+          />
+          <Button onClick={handleSaveEdit}>Save</Button>
+          <Button onClick={() => setEditingBudget(null)}>Cancel</Button>
+        </div>
+      )}
     </div>
   );
 };

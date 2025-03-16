@@ -1,63 +1,75 @@
 import React, { createContext, useState, useEffect } from "react";
 import { toast } from "react-toastify";
-import jwtDecode from "jwt-decode";
+import { useNavigate } from "react-router-dom"; // Import useNavigate for redirection
 
 export const BudgetContext = createContext();
 
 export const BudgetProvider = ({ children }) => {
   const [budgets, setBudgets] = useState([]);
   const [imageUrl, setImageUrl] = useState("");
+  const navigate = useNavigate(); // Initialize useNavigate for redirection
 
   // 🔹 Fetch Budgets (Runs on load if logged in)
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
-      fetchBudgets(token);
+      fetchBudgets();
     } else {
       console.error("No token found. Please log in.");
     }
   }, []);
 
+  // 🔹 Fetch All Budgets
   const fetchBudgets = async () => {
     try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-            console.error("No token found. User is not authenticated.");
-            return;
-        }
+      const token = localStorage.getItem("token");
+      if (!token) {
+        console.error("No token found. User is not authenticated.");
+        navigate("/login"); // Redirect to login if no token
+        return;
+      }
 
-        const response = await fetch("https://homebudgetapp-1.onrender.com/budgets", {
-            method: "GET",
-            headers: {
-                "Authorization": `Bearer ${token}`, // Ensure authentication
-                "Content-Type": "application/json"
-            },
-        });
+      const response = await fetch("https://homebudgetapp-1.onrender.com/budgets", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`, // Ensure authentication
+          "Content-Type": "application/json",
+        },
+      });
 
-        if (response.status === 401) {
-            console.error("Unauthorized access. Redirecting to login.");
-            localStorage.removeItem("token");
-            navigate("/login");
-            return;
-        }
+      if (response.status === 401) {
+        console.error("Unauthorized access. Redirecting to login.");
+        localStorage.removeItem("token");
+        navigate("/login");
+        return;
+      }
 
-        if (!response.ok) {
-            throw new Error(`Server error: ${response.status}`);
-        }
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
 
-        const data = await response.json();
-        setBudgets(data); // Assuming you store budgets in state
+      const data = await response.json();
+      setBudgets(data); // Update budgets state
     } catch (error) {
-        console.error("Fetch budgets error:", error);
-        alert("Failed to load budgets.");
+      console.error("Fetch budgets error:", error);
+      toast.error("Failed to load budgets.");
     }
-};
-
+  };
 
   // 🔹 Fetch Single Budget By ID
   const fetchBudgetById = async (budget_id) => {
     try {
-      const response = await fetch(`https://homebudgetapp-1.onrender.com/budget/${budget_id}`);
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No token found. Please log in.");
+      }
+
+      const response = await fetch(`https://homebudgetapp-1.onrender.com/budget/${budget_id}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       if (!response.ok) {
         throw new Error("Failed to fetch budget.");
