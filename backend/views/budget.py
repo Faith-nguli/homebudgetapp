@@ -153,8 +153,9 @@ def get_budgets(user_id):
 @jwt_required()
 def get_user_budgets_by_id(user_id):
     current_user_id = get_jwt_identity()
-    if current_user_id != user_id:
+    if current_user_id != user_id:  # ✅ Fixed indentation
         return jsonify({'msg': 'Unauthorized'}), 403
 
     budgets = Budget.query.filter_by(user_id=user_id).all()
     return jsonify([budget.to_dict() for budget in budgets]), 200
+
