@@ -38,92 +38,92 @@ def create_app():
         response.headers["Access-Control-Allow-Credentials"] = "true"
         return response
 
-    # Route to create a budget
-    @app.route('/budgets', methods=['POST'])
-    @jwt_required()
-    def create_budget():
-        print("Received request data:", request.get_json())  # Debug print
-        print("Headers:", request.headers)  # Debug print
+    # # Route to create a budget
+    # @app.route('/budgets', methods=['POST'])
+    # @jwt_required()
+    # def create_budget():
+    #     print("Received request data:", request.get_json())  # Debug print
+    #     print("Headers:", request.headers)  # Debug print
 
-        if not request.is_json:
-            return jsonify({"error": "Request must be JSON"}), 422
+    #     if not request.is_json:
+    #         return jsonify({"error": "Request must be JSON"}), 422
 
-        try:
-            data = request.get_json()
-            current_user_id = get_jwt_identity()
+    #     try:
+    #         data = request.get_json()
+    #         current_user_id = get_jwt_identity()
 
-            print("Current user ID:", current_user_id)  # Debug print
+    #         print("Current user ID:", current_user_id)  # Debug print
 
-            # Validate required fields
-            if not data.get('category'):
-                return jsonify({"error": "Category is required"}), 422
-            if not data.get('limit'):
-                return jsonify({"error": "Limit is required"}), 422
+    #         # Validate required fields
+    #         if not data.get('category'):
+    #             return jsonify({"error": "Category is required"}), 422
+    #         if not data.get('limit'):
+    #             return jsonify({"error": "Limit is required"}), 422
 
          
 
-            # Create budget
-            try:
-                budget = Budget(
-                    category=data['category'],
-                    limit=float(data['limit']),
-                    user_id=current_user_id,
-                    image_url=data.get('image_url'),
+    #         # Create budget
+    #         try:
+    #             budget = Budget(
+    #                 category=data['category'],
+    #                 limit=float(data['limit']),
+    #                 user_id=current_user_id,
+    #                 image_url=data.get('image_url'),
                    
-                )
+    #             )
 
-                db.session.add(budget)
-                db.session.commit()
+    #             db.session.add(budget)
+    #             db.session.commit()
 
-                return jsonify({
-                    'id': budget.id,
-                    'category': budget.category,
-                    'limit': budget.limit,
-                    'current_spent': budget.current_spent,
-                    'user_id': budget.user_id,
-                    'image_url': budget.image_url,
-                    'savings': budget.savings
-                }), 201
+    #             return jsonify({
+    #                 'id': budget.id,
+    #                 'category': budget.category,
+    #                 'limit': budget.limit,
+    #                 'current_spent': budget.current_spent,
+    #                 'user_id': budget.user_id,
+    #                 'image_url': budget.image_url,
+    #                 'savings': budget.savings
+    #             }), 201
 
-            except ValueError:
-                return jsonify({"error": "Invalid number format for limit"}), 422
-            except Exception as e:
-                return jsonify({"error": f"Database error: {str(e)}"}), 500
+    #         except ValueError:
+    #             return jsonify({"error": "Invalid number format for limit"}), 422
+    #         except Exception as e:
+    #             return jsonify({"error": f"Database error: {str(e)}"}), 500
 
-        except Exception as e:
-            return jsonify({"error": f"Request processing error: {str(e)}"}), 500
+    #     except Exception as e:
+    #         return jsonify({"error": f"Request processing error: {str(e)}"}), 500
 
-    # Route to fetch all budgets
-    @app.route('/budgets', methods=['GET'])
-    @jwt_required()
-    def get_budgets():
-        user_id = request.args.get('user_id')
-        if user_id:
-            budgets = Budget.query.filter_by(user_id=user_id).all()
-        else:
-            budgets = Budget.query.all()
+    # # Route to fetch all budgets
+    # @app.route('/budgets', methods=['GET'])
+    # @jwt_required()
+    # def get_budgets():
+    #     user_id = request.args.get('user_id')
+    #     if user_id:
+    #         budgets = Budget.query.filter_by(user_id=user_id).all()
+    #     else:
+    #         budgets = Budget.query.all()
 
-        return jsonify([{
-            'id': budget.id,
-            'category': budget.category,
-            'limit': budget.limit,
-            'current_spent': budget.current_spent,
-            'user_id': budget.user_id,
-            'image_url': budget.image_url,
+    #     return jsonify([{
+    #         'id': budget.id,
+    #         'category': budget.category,
+    #         'limit': budget.limit,
+    #         'current_spent': budget.current_spent,
+    #         'user_id': budget.user_id,
+    #         'image_url': budget.image_url,
            
-            'savings': budget.savings
-        } for budget in budgets]), 200
+    #         'savings': budget.savings
+    #     } for budget in budgets]), 200
     
-        # Route to fetch all budgets (RESTful - uses path parameter)
-    @app.route('/user/<int:user_id>/budgets', methods=['GET'])  # RESTful URL
-    @jwt_required()
-    def get_user_budgets(user_id):
-        current_user_id = get_jwt_identity()
-        if current_user_id != user_id:
-            return jsonify({'msg': 'Unauthorized'}), 403
+    #     # Route to fetch all budgets (RESTful - uses path parameter)
+    # @app.route('/user/<int:user_id>/budgets', methods=['GET'])  # RESTful URL
+    # @jwt_required()
+    # def get_user_budgets(user_id):
+    #     current_user_id = get_jwt_identity()
+    #     if current_user_id != user_id:
+    #         return jsonify({'msg': 'Unauthorized'}), 403
 
-        budgets = Budget.query.filter_by(user_id=user_id).all()
-        return jsonify([budget.to_dict() for budget in budgets]), 200  
+    #     budgets = Budget.query.filter_by(user_id=user_id).all()
+    #     return jsonify([budget.to_dict() for budget in budgets]), 200  
 
     
     # Database configuration

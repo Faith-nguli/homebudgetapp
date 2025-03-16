@@ -21,6 +21,95 @@ def allowed_file(filename):
 
 
 
+# ✅ **Create Budget**
+@budget_bp.route('/budgets', methods=['POST'])
+@jwt_required()
+def create_budget():
+    if not request.is_json:
+        return jsonify({"error": "Request must be JSON"}), 422
+
+    try:
+        data = request.get_json()
+        current_user_id = get_jwt_identity()
+
+        if not data.get('category') or not data.get('limit'):
+            return jsonify({"error": "Category and limit are required"}), 422
+
+        budget = Budget(
+            category=data['category'],
+            limit=float(data['limit']),
+            user_id=current_user_id,
+            image_url=data.get('image_url', None),  # Image URL optional
+        )
+
+        db.session.add(budget)
+        db.session.commit()
+
+        return jsonify(budget.to_dict()), 201
+
+    except ValueError:
+        return jsonify({"error": "Invalid number format for limit"}), 422
+    except Exception as e:
+        return jsonify({"error": f"Database error: {str(e)}"}), 500
+
+
+# ✅ **Fetch Budgets for Logged-in User**
+@budget_bp.route('/budgets', methods=['GET'])
+@jwt_required()
+def get_user_budgets():
+    current_user_id = get_jwt_identity()
+    budgets = Budget.query.filter_by(user_id=current_user_id).all()
+    return jsonify([budget.to_dict() for budget in budgets]), 200
+
+
+# ✅ **Fetch a Single Budget**
+@budget_bp.route('/budgets/<int:budget_id>', methods=['GET'])
+@jwt_required()
+def get_budget(budget_id):
+    budget = Budget.query.get_or_404(budget_id)
+    if budget.user_id != get_jwt_identity():
+        return jsonify({"error": "Unauthorized"}), 403
+    return jsonify(budget.to_dict()), 200
+
+
+# ✅ **Update Budget**
+@budget_bp.route('/budgets/<int:budget_id>', methods=['PUT'])
+@jwt_required()
+def update_budget(budget_id):
+    budget = Budget.query.get_or_404(budget_id)
+
+    if budget.user_id != get_jwt_identity():
+        return jsonify({"error": "Unauthorized"}), 403
+
+    try:
+        data = request.get_json()
+        budget.category = data.get('category', budget.category)
+        budget.limit = float(data.get('limit', budget.limit))
+        budget.image_url = data.get('image_url', budget.image_url)
+
+        db.session.commit()
+        return jsonify(budget.to_dict()), 200
+
+    except ValueError:
+        return jsonify({"error": "Invalid number format for limit"}), 422
+    except Exception as e:
+        return jsonify({"error": f"Database error: {str(e)}"}), 500
+
+
+# ✅ **Delete Budget**
+@budget_bp.route('/budgets/<int:budget_id>', methods=['DELETE'])
+@jwt_required()
+def delete_budget(budget_id):
+    budget = Budget.query.get_or_404(budget_id)
+
+    if budget.user_id != get_jwt_identity():
+        return jsonify({"error": "Unauthorized"}), 403
+
+    db.session.delete(budget)
+    db.session.commit()
+    return jsonify({"message": "Budget deleted successfully"}), 200
+
+
 
 
 #  UPLOAD Budget Image
@@ -59,5 +148,15 @@ def serve_budget_image(filename):
 def get_budgets(user_id):
     budgets = Budget.query.filter_by(user_id=user_id).all()
     return jsonify([budget.to_dict() for budget in budgets])
+
+@budget_bp.route('/user/<int:user_id>/budgets', methods=['GET'])  # RESTful URL
+@jwt_required()
+def get_user_budgets(user_id):
+    current_user_id = get_jwt_identity()
+        if current_user_id != user_id:
+            return jsonify({'msg': 'Unauthorized'}), 403
+
+        budgets = Budget.query.filter_by(user_id=user_id).all()
+        return jsonify([budget.to_dict() for budget in budgets]), 200  
 
 

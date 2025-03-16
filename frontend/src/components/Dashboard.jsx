@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import Button from "./Button";
-import Card from "../components/ExpenseCard";
-import jwt_decode from "jwt-decode";
+import jwtDecode from "jwt-decode";
+import Button from "../components/Button";
+import ExpenseCard from "../components/ExpenseCard"; // Ensure this is correctly exported in ExpenseCard.jsx
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -19,24 +19,13 @@ const Dashboard = () => {
 
       try {
         const token = localStorage.getItem("token");
-        if (!token) {
-          console.log("Token not found.");
-          setError("Authentication token is missing.");
-          return;
-        }
+        if (!token) throw new Error("Authentication token is missing.");
 
-        console.log("Token:", token);
+        const user = jwtDecode(token);
+        if (!user?.sub) throw new Error("Invalid user data.");
 
-        const user = jwt_decode(token);
-        console.log("Decode User:", user);
-
-        if(!user.id) {
-          console.error("User ID not found.");
-          setError("Invalid user data.");
-          return;
-        }
         const response = await fetch(
-          `https://homebudgetapp-1.onrender.com/user/${user_id}/budgets`,
+          `https://homebudgetapp-1.onrender.com/budget/budgets`, // Corrected API URL
           {
             method: "GET",
             headers: {
@@ -50,9 +39,8 @@ const Dashboard = () => {
           throw new Error(`Failed to fetch budgets: ${response.statusText}`);
         }
 
-        const responseBody = await response.json();
-        console.log("Fetched Budgets:", responseBody);
-        setBudgets(responseBody);
+        const data = await response.json();
+        setBudgets(data);
       } catch (error) {
         console.error("Fetch budgets error:", error);
         setError(error.message);
@@ -60,6 +48,7 @@ const Dashboard = () => {
         setLoading(false);
       }
     };
+
     fetchBudgets();
   }, []);
 
@@ -68,12 +57,13 @@ const Dashboard = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const handleDelete = async (budget_id) => {
+  const handleDelete = async (budgetId) => {
     if (!window.confirm("Are you sure you want to delete this budget?")) return;
+
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(
-        `https://homebudgetapp-1.onrender.com/budgets/${budget_id}`,
+        `https://homebudgetapp-1.onrender.com/budget/budgets/${budgetId}`, // Corrected API URL
         {
           method: "DELETE",
           headers: {
@@ -82,11 +72,14 @@ const Dashboard = () => {
           },
         }
       );
+
       if (!response.ok) throw new Error("Failed to delete budget");
 
-      setBudgets((prev) => prev.filter((budget) => budget.id !== budget_id));
+      setBudgets((prev) => prev.filter((budget) => budget.id !== budgetId));
+      alert("Budget deleted successfully!");
     } catch (error) {
       console.error("Delete error:", error);
+      alert(`Error deleting budget: ${error.message}`);
     }
   };
 
@@ -95,24 +88,25 @@ const Dashboard = () => {
   };
 
   const handleSaveEdit = async () => {
+    if (!editingBudget || !editingBudget.id) {
+      alert("Invalid budget data");
+      return;
+    }
+
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("User is not authenticated");
 
-      if (!editingBudget || !editingBudget.id) {
-        throw new Error("Invalid budget data");
-      }
-
       const updatedData = {
-        category: editingBudget.category || "",
-        limit: parseFloat(editingBudget.limit) || 0,
+        category: editingBudget.category,
+        limit: parseFloat(editingBudget.limit),
         current_spent: parseFloat(editingBudget.current_spent || 0),
         savings: parseFloat(editingBudget.savings || 0),
         image_url: editingBudget.image_url || null,
       };
 
       const response = await fetch(
-        `https://homebudgetapp-1.onrender.com/budgets/${editingBudget.id}`,
+        `https://homebudgetapp-1.onrender.com/budget/budgets/${editingBudget.id}`, // Corrected API URL
         {
           method: "PUT",
           headers: {
@@ -140,8 +134,8 @@ const Dashboard = () => {
     }
   };
 
-  const totalExpenses = budgets.reduce((sum, budget) => sum + budget.current_spent, 0);
-  const totalLimit = budgets.reduce((sum, budget) => sum + budget.limit, 0);
+  const totalExpenses = budgets.reduce((sum, budget) => sum + (budget.current_spent || 0), 0);
+  const totalLimit = budgets.reduce((sum, budget) => sum + (budget.limit || 0), 0);
   const totalSavings = budgets.reduce((sum, budget) => sum + (budget.savings || 0), 0);
 
   return (
@@ -165,13 +159,13 @@ const Dashboard = () => {
       ) : (
         <div className="budget-grid">
           {budgets.map((budget) => (
-            <Card key={budget.id} className="budget-card">
+            <ExpenseCard key={budget.id} className="budget-card">
               <h3>{budget.category}</h3>
-              <p>Spent: KES {budget.current_spent.toLocaleString()}</p>
-              <p>Limit: KES {budget.limit.toLocaleString()}</p>
+              <p>Spent: KES {budget.current_spent?.toLocaleString()}</p>
+              <p>Limit: KES {budget.limit?.toLocaleString()}</p>
               <Button onClick={() => handleEdit(budget)}>Edit</Button>
               <Button onClick={() => handleDelete(budget.id)}>Delete</Button>
-            </Card>
+            </ExpenseCard>
           ))}
         </div>
       )}

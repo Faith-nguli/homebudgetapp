@@ -33,6 +33,8 @@ export const ExpenseProvider = ({ children }) => {
     }
   }, []);
 
+  
+
   useEffect(() => {
     fetchExpenses();
   }, [fetchExpenses]);
