@@ -20,7 +20,6 @@ def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-
 # ✅ **Create Budget**
 @budget_bp.route('/budgets', methods=['POST'])
 @jwt_required()
@@ -110,9 +109,7 @@ def delete_budget(budget_id):
     return jsonify({"message": "Budget deleted successfully"}), 200
 
 
-
-
-#  UPLOAD Budget Image
+# ✅ **Upload Budget Image**
 @budget_bp.route("/budgets/upload", methods=["POST"])
 @jwt_required()
 def upload_budget_image():
@@ -138,25 +135,26 @@ def upload_budget_image():
     return jsonify({"error": "Invalid file type. Allowed: png, jpg, jpeg"}), 400
 
 
-#  SERVE Budget Image
+# ✅ **Serve Budget Image**
 @budget_bp.route("/uploads/budget_images/<filename>")
 def serve_budget_image(filename):
     return send_from_directory(UPLOAD_FOLDER, filename)
 
 
+# ✅ **Fetch Budgets by User ID (Public Route)**
 @budget_bp.route('/budgets/<int:user_id>', methods=['GET'])
 def get_budgets(user_id):
     budgets = Budget.query.filter_by(user_id=user_id).all()
     return jsonify([budget.to_dict() for budget in budgets])
 
+
+# ✅ **Fetch Budgets for Authenticated User**
 @budget_bp.route('/user/<int:user_id>/budgets', methods=['GET'])  # RESTful URL
 @jwt_required()
-def get_user_budgets(user_id):
+def get_user_budgets_by_id(user_id):
     current_user_id = get_jwt_identity()
-        if current_user_id != user_id:
-            return jsonify({'msg': 'Unauthorized'}), 403
+    if current_user_id != user_id:
+        return jsonify({'msg': 'Unauthorized'}), 403
 
-        budgets = Budget.query.filter_by(user_id=user_id).all()
-        return jsonify([budget.to_dict() for budget in budgets]), 200  
-
-
+    budgets = Budget.query.filter_by(user_id=user_id).all()
+    return jsonify([budget.to_dict() for budget in budgets]), 200
