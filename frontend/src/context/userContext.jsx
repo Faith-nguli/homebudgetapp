@@ -53,37 +53,37 @@ export const UserProvider = ({ children }) => {
 
   // User Login
   const login = async (email, password) => {
-    const toastId = toast.loading("Logging you in...");
-  
-    try {
-      const response = await fetch("https://homebudgetapp-1.onrender.com/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-  
-      const responseData = await response.json().catch(() => ({ error: "Invalid response from server" }));
-  
-      if (!response.ok) {
-        throw new Error(responseData.error || `HTTP error! Status: ${response.status}`);
-      }
-  
-      if (!responseData.token) {
-        throw new Error("No authentication token received. Please try again.");
-      }
-  
-      sessionStorage.setItem("token", responseData.token);
-      setAuthToken(responseData.token);
-      await fetchCurrentUser(responseData.token);
-  
-      toast.update(toastId, { render: "Login successful!", type: "success", isLoading: false, autoClose: 2000 });
-      setTimeout(() => navigate("/dashboard"), 500);
-    } catch (error) {
-      toast.update(toastId, { render: error.message || "Login failed", type: "error", isLoading: false, autoClose: 3000 });
-      console.error("Login error:", error);
+  const toastId = toast.loading("Logging you in...");
+
+  try {
+    const response = await fetch("https://homebudgetapp-1.onrender.com/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const responseData = await response.json().catch(() => ({ error: "Invalid response from server" }));
+
+    if (!response.ok) {
+      throw new Error(responseData.error || `HTTP error! Status: ${response.status}`);
     }
-  };
-  
+
+    if (!responseData.token) {
+      throw new Error("No authentication token received. Please try again.");
+    }
+
+    sessionStorage.setItem("token", responseData.token);
+    setAuthToken(responseData.token);
+    await fetchCurrentUser(responseData.token);
+
+    toast.update(toastId, { render: "Login successful!", type: "success", isLoading: false, autoClose: 2000 });
+    setTimeout(() => navigate("/dashboard"), 500);
+  } catch (error) {
+    toast.update(toastId, { render: error.message || "Login failed", type: "error", isLoading: false, autoClose: 3000 });
+    console.error("Login error:", error);
+  }
+};
+
 
   // User Logout
   const logout = () => {
