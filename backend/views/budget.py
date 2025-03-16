@@ -1,18 +1,17 @@
 import os
-from flask import Blueprint, jsonify, request, current_app, send_from_directory
+import traceback
+from flask import Blueprint, jsonify, request, send_from_directory
 from werkzeug.utils import secure_filename
 from models import db, Budget
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
+# Initialize Blueprint
 budget_bp = Blueprint("budget_bp", __name__)
 
 # Allowed Image Types
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg"}
-
-# Ensure Upload Folder Exists
 UPLOAD_FOLDER = "uploads/budget_images"
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)  # Ensure upload directory exists
 
 
 def allowed_file(filename):
@@ -20,13 +19,21 @@ def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+def format_budget(budget):
+    """Helper function to format budget response."""
+    return {
+        "id": budget.id,
+        "category": budget.category,
+        "limit": budget.limit,
+        "user_id": budget.user_id,
+        "image_url": budget.image_url
+    }
+
+
 # ✅ **Create Budget**
 @budget_bp.route('/budgets', methods=['POST'])
 @jwt_required()
 def create_budget():
-    if not request.is_json:
-        return jsonify({"error": "Request must be JSON"}), 422
-
     try:
         data = request.get_json()
         current_user_id = get_jwt_identity()
@@ -38,37 +45,51 @@ def create_budget():
             category=data['category'],
             limit=float(data['limit']),
             user_id=current_user_id,
-            image_url=data.get('image_url', None),  # Image URL optional
+            image_url=data.get('image_url')
         )
 
         db.session.add(budget)
         db.session.commit()
-
-        return jsonify(budget.to_dict()), 201
+        return jsonify({"message": "Budget created successfully!"}), 201
 
     except ValueError:
         return jsonify({"error": "Invalid number format for limit"}), 422
     except Exception as e:
+        traceback.print_exc()  # Print full error in console
         return jsonify({"error": f"Database error: {str(e)}"}), 500
-
 
 # ✅ **Fetch Budgets for Logged-in User**
 @budget_bp.route('/budgets', methods=['GET'])
-@jwt_required()
-def get_user_budgets():
-    current_user_id = get_jwt_identity()
-    budgets = Budget.query.filter_by(user_id=current_user_id).all()
-    return jsonify([budget.to_dict() for budget in budgets]), 200
+@jwt_required()  # Ensure user is authenticated
+def get_budgets():
+    try:
+        current_user_id = get_jwt_identity()  # Get logged-in user ID
+
+        # Fetch budgets for the logged-in user only
+        budgets = Budget.query.filter_by(user_id=current_user_id).all()
+
+        return jsonify([{
+            "id": budget.id,
+            "category": budget.category,
+            "limit": budget.limit,
+            "amount": budget.amount,
+            "image_url": budget.image_url
+        } for budget in budgets]), 200
+
+    except Exception as e:
+        traceback.print_exc()  # Print full error in Flask logs
+        return jsonify({"error": f"Database error: {str(e)}"}), 500
 
 
-# ✅ **Fetch a Single Budget**
+
+# ✅ **Fetch a Single Budget by ID**
 @budget_bp.route('/budgets/<int:budget_id>', methods=['GET'])
 @jwt_required()
 def get_budget(budget_id):
     budget = Budget.query.get_or_404(budget_id)
     if budget.user_id != get_jwt_identity():
         return jsonify({"error": "Unauthorized"}), 403
-    return jsonify(budget.to_dict()), 200
+    return jsonify(format_budget(budget)), 200
 
 
 # ✅ **Update Budget**
@@ -76,7 +97,6 @@ def get_budget(budget_id):
 @jwt_required()
 def update_budget(budget_id):
     budget = Budget.query.get_or_404(budget_id)
-
     if budget.user_id != get_jwt_identity():
         return jsonify({"error": "Unauthorized"}), 403
 
@@ -87,7 +107,7 @@ def update_budget(budget_id):
         budget.image_url = data.get('image_url', budget.image_url)
 
         db.session.commit()
-        return jsonify(budget.to_dict()), 200
+        return jsonify(format_budget(budget)), 200
 
     except ValueError:
         return jsonify({"error": "Invalid number format for limit"}), 422
@@ -100,7 +120,6 @@ def update_budget(budget_id):
 @jwt_required()
 def delete_budget(budget_id):
     budget = Budget.query.get_or_404(budget_id)
-
     if budget.user_id != get_jwt_identity():
         return jsonify({"error": "Unauthorized"}), 403
 
@@ -127,7 +146,7 @@ def upload_budget_image():
         file.save(filepath)
 
         # Generate Full Image URL
-        server_url = request.host_url.rstrip("/")  # Ensure no trailing slash
+        server_url = request.host_url.rstrip("/")
         image_url = f"{server_url}/uploads/budget_images/{filename}"
 
         return jsonify({"message": "Image uploaded successfully!", "image_url": image_url}), 201
@@ -141,21 +160,16 @@ def serve_budget_image(filename):
     return send_from_directory(UPLOAD_FOLDER, filename)
 
 
-# ✅ **Fetch Budgets by User ID (Public Route)**
-@budget_bp.route('/budgets/<int:user_id>', methods=['GET'])
-def get_budgets(user_id):
-    budgets = Budget.query.filter_by(user_id=user_id).all()
-    return jsonify([budget.to_dict() for budget in budgets])
-
-
-# ✅ **Fetch Budgets for Authenticated User**
-@budget_bp.route('/user/<int:user_id>/budgets', methods=['GET'])  # RESTful URL
+# ✅ **Fetch Budgets by User ID (Admin/Optional Public Route)**
+@budget_bp.route('/user/<int:user_id>/budgets', methods=['GET'])
 @jwt_required()
 def get_user_budgets_by_id(user_id):
+    """Admin can fetch budgets by user ID, ensuring access control."""
     current_user_id = get_jwt_identity()
-    if current_user_id != user_id:  # ✅ Fixed indentation
+    
+    # OPTIONAL: Ensure only admin users can fetch others' budgets
+    if current_user_id != user_id:  
         return jsonify({'msg': 'Unauthorized'}), 403
 
     budgets = Budget.query.filter_by(user_id=user_id).all()
-    return jsonify([budget.to_dict() for budget in budgets]), 200
-
+    return jsonify([format_budget(budget) for budget in budgets]), 200

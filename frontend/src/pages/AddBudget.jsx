@@ -1,116 +1,87 @@
-import React, { useState, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { BudgetContext } from '../context/BudgetContext';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-function AddBudget() {
+const AddBudget = () => {
   const navigate = useNavigate();
-  const { handleFileUpload } = useContext(BudgetContext);
-
   const [budget, setBudget] = useState({
-    category: '',
-    amount: '',
-    limit: '',
-    image: ''
+    category: "",
+    amount: "",
+    limit: "",
+    image: "",
+    savings: 0,
   });
 
-  function handleChange(e) {
+  const handleChange = (e) => {
     const { name, value } = e.target;
-    setBudget(prev => {
+    setBudget((prev) => {
       const updatedBudget = { ...prev, [name]: value };
-
-      // Update savings and current_spent on amount or limit change
-      if ((updatedBudget.amount && updatedBudget.limit) && (name === "amount" || name === "limit")) {
-        const amount = parseFloat(updatedBudget.amount);
-        const limit = parseFloat(updatedBudget.limit);
-        const savings = limit - amount;
-
-        updatedBudget.savings = savings > 0 ? savings : 0;
-        updatedBudget.current_spent = amount;
+      if (["amount", "limit"].includes(name)) {
+        updatedBudget.savings = Math.max(
+          parseFloat(updatedBudget.limit || 0) - parseFloat(updatedBudget.amount || 0),
+          0
+        );
       }
       return updatedBudget;
     });
-  }
+  };
 
-  function handleCategoryChange(e) {
-    setBudget(prev => ({ ...prev, category: e.target.value }));
-  }
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-  function handleImageUpload(e) {
-    const file = e?.target?.files?.[0];
-    if (!file) {
-      console.error("No file selected");
-      return;
+    const token = localStorage.getItem("token");
+    if (!token) return navigate("/login");
+
+    const formData = new FormData();
+    formData.append("image", file);
+
+    try {
+      const response = await fetch("http://localhost:5000/budgets/upload", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const data = await response.json();
+      if (response.ok) setBudget((prev) => ({ ...prev, image: data.image_url }));
+      else alert("Image upload failed: " + (data.error || "Unknown error"));
+    } catch (error) {
+      console.error("Error uploading image:", error);
     }
-
-    console.log("Uploading file:", file.name);
-    handleFileUpload(file)
-      .then((url) => {
-        console.log("Image uploaded successfully:", url);
-        setBudget(prev => ({ ...prev, image: url }));
-      })
-      .catch(err => console.error("Image upload failed", err));
-  }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!budget.category) {
-        alert("Please select a category");
-        return;
-    }
+    if (!budget.category) return alert("Please select a category");
 
     const token = localStorage.getItem("token");
-    if (!token) {
-        alert("User is not authenticated. Please log in.");
-        navigate("/login");
-        return;
-    }
+    if (!token) return navigate("/login");
 
     const budgetData = {
-        category: budget.category,
-        limit: parseFloat(budget.limit),
-        amount: budget.amount ? parseFloat(budget.amount) : 0,
-        image_url: budget.image || null,
+      category: budget.category,
+      limit: parseFloat(budget.limit) || 0,
+      amount: parseFloat(budget.amount) || 0,
+      image_url: budget.image || null,
     };
 
     try {
-        const response = await fetch("https://homebudgetapp-1.onrender.com/budgets", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`, // Ensure token is included
-            },
-            body: JSON.stringify(budgetData),
-            credentials: "include",
-        });
+      const response = await fetch("https://homebudgetapp-1.onrender.com/budgets", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(budgetData),
+      });
 
-        if (response.status === 401) {
-            alert("Session expired. Please log in again.");
-            localStorage.removeItem("token");
-            navigate("/login");
-            return;
-        }
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed to add budget");
 
-        const text = await response.text();
-        let data;
-        try {
-            data = JSON.parse(text);
-        } catch {
-            throw new Error("Invalid JSON response from server");
-        }
-
-        if (!response.ok) {
-            throw new Error(data.error || `Server error: ${response.status}`);
-        }
-
-        console.log("Budget created successfully:", data);
-        navigate("/dashboard");
+      navigate("/dashboard");
     } catch (error) {
-        console.error("Error submitting budget:", error);
-        alert("Failed to submit budget: " + error.message);
+      console.error("Error submitting budget:", error);
+      alert(error.message);
     }
-};
-
+  };
 
   return (
     <div className="add-budget-form">
@@ -118,7 +89,7 @@ function AddBudget() {
       <form onSubmit={handleSubmit}>
         <div className="form-group">
           <label>Category</label>
-          <select name="category" value={budget.category} onChange={handleCategoryChange} required>
+          <select name="category" value={budget.category} onChange={handleChange} required>
             <option value="">Select Category</option>
             <option value="food">Food</option>
             <option value="transport">Transport</option>
@@ -128,46 +99,24 @@ function AddBudget() {
         </div>
         <div className="form-group">
           <label>Amount</label>
-          <input
-            type="number"
-            name="amount"
-            value={budget.amount}
-            onChange={handleChange}
-            min="0"
-            step="0.01"
-            required
-          />
+          <input type="number" name="amount" value={budget.amount} onChange={handleChange} min="0" step="0.01" required />
         </div>
         <div className="form-group">
           <label>Limit</label>
-          <input
-            type="number"
-            name="limit"
-            value={budget.limit}
-            onChange={handleChange}
-            min="0"
-            step="0.01"
-            required
-          />
+          <input type="number" name="limit" value={budget.limit} onChange={handleChange} min="0" step="0.01" required />
         </div>
         <div className="form-group">
           <label>Image</label>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleImageUpload}
-          />
+          <input type="file" accept="image/*" onChange={handleFileUpload} />
         </div>
         <div className="form-group">
           <label>Savings</label>
           <input type="number" value={budget.savings} readOnly />
         </div>
-        <button type="submit" className="submit-btn">
-          Add Budget
-        </button>
+        <button type="submit" className="submit-btn">Add Budget</button>
       </form>
     </div>
   );
-}
+};
 
 export default AddBudget;

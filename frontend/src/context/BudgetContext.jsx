@@ -20,36 +20,38 @@ export const BudgetProvider = ({ children }) => {
 
   const fetchBudgets = async () => {
     try {
-      const token = localStorage.getItem("token");
-      
-      if (!token) {
-        toast.error("No token found. Please log in.");
-        return;
-      }
-  
-      const response = await fetch("https://homebudgetapp-1.onrender.com/budgets", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-  
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to fetch budgets.");
-      }
-  
-      const data = await response.json();
-      setBudgets(data);
+        const token = localStorage.getItem("token");
+        if (!token) {
+            console.error("No token found. User is not authenticated.");
+            return;
+        }
+
+        const response = await fetch("https://homebudgetapp-1.onrender.com/budgets", {
+            method: "GET",
+            headers: {
+                "Authorization": `Bearer ${token}`, // Ensure authentication
+                "Content-Type": "application/json"
+            },
+        });
+
+        if (response.status === 401) {
+            console.error("Unauthorized access. Redirecting to login.");
+            localStorage.removeItem("token");
+            navigate("/login");
+            return;
+        }
+
+        if (!response.ok) {
+            throw new Error(`Server error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        setBudgets(data); // Assuming you store budgets in state
     } catch (error) {
-      console.error("Fetch error:", error);
-      toast.error(error.message);
+        console.error("Fetch budgets error:", error);
+        alert("Failed to load budgets.");
     }
-  };
-  
-
-
+};
 
 
   // 🔹 Fetch Single Budget By ID

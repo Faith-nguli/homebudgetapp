@@ -104,28 +104,24 @@ export const UserProvider = ({ children }) => {
             }),
         });
 
-        // Log the entire response to see what's being returned
-        const responseText = await response.text();
-        console.log("🔍 Raw response from server:", responseText);
-
-        let responseData;
-        try {
-            responseData = JSON.parse(responseText);
-        } catch (error) {
-            throw new Error("Invalid JSON response from server");
-        }
+        // Log the response
+        const responseData = await response.json();
+        console.log("🔍 Full server response:", responseData);
 
         if (!response.ok) {
             throw new Error(responseData.error || "Registration failed");
         }
 
-        if (!responseData.token) {  // Check if backend returns 'token' instead of 'access_token'
+        // ✅ Fix: Access token is inside responseData.data.access_token
+        const token = responseData.data?.access_token;  
+        if (!token) {
             throw new Error("No access token received");
         }
 
-        localStorage.setItem("token", responseData.token);
-        setAuthToken(responseData.token);
-        fetchCurrentUser(responseData.token);
+        // ✅ Store token and set authentication state
+        sessionStorage.setItem("token", token);
+        setAuthToken(token);
+        fetchCurrentUser(token);
 
         toast.update(toastId, { render: "Registration successful!", type: "success", isLoading: false, autoClose: 2000 });
         setTimeout(() => navigate("/dashboard"), 500);
@@ -134,6 +130,7 @@ export const UserProvider = ({ children }) => {
         console.error("❌ Registration error:", error);
     }
 };
+
 
 
   // 🔹 UPDATE USER
