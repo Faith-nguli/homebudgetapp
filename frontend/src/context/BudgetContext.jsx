@@ -20,45 +20,34 @@ export const BudgetProvider = ({ children }) => {
 
   const fetchBudgets = async () => {
     try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-            toast.error("No token found. Please log in.");
-            return;
-        }
-
-        // Decode token to extract user ID
-        const decodedToken = jwtDecode(token);
-        console.log("Decoded Token:", decodedToken);
-
-        if (!decodedToken?.sub) {
-            toast.error("Invalid token. Please log in again.");
-            return;
-        }
-
-        const userId = decodedToken.sub;  // Extract user ID
-
-        // Fetch budgets for the specific user
-        const response = await fetch(`https://homebudgetapp-1.onrender.com/budgets/${userId}`, {
-            method: "GET",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-            },
-        });
-
-        if (!response.ok) {
-            throw new Error("Failed to fetch budgets.");
-        }
-
-        const data = await response.json();
-        console.log("Fetched Budgets:", data);
-        setBudgets(data);
+      const token = localStorage.getItem("token");
+      
+      if (!token) {
+        toast.error("No token found. Please log in.");
+        return;
+      }
+  
+      const response = await fetch("https://homebudgetapp-1.onrender.com/budgets", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to fetch budgets.");
+      }
+  
+      const data = await response.json();
+      setBudgets(data);
     } catch (error) {
-        console.error("Fetch error:", error);
-        toast.error(error.message);
+      console.error("Fetch error:", error);
+      toast.error(error.message);
     }
-};
-
+  };
+  
 
 
 

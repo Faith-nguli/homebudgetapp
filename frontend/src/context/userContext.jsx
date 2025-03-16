@@ -54,26 +54,28 @@ export const UserProvider = ({ children }) => {
   // User Login
   const login = async (email, password) => {
     const toastId = toast.loading("Logging you in...");
-
+  
     try {
       const response = await fetch("https://homebudgetapp-1.onrender.com/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-
+  
+      const responseData = await response.json().catch(() => ({ error: "Invalid response from server" }));
+  
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: "Login failed" }));
-        throw new Error(errorData.message || `HTTP error! Status: ${response.status}`);
+        throw new Error(responseData.error || `HTTP error! Status: ${response.status}`);
       }
-
-      const responseData = await response.json();
-      if (!responseData.access_token) throw new Error("No access token received");
-
-      sessionStorage.setItem("token", responseData.access_token);
-      setAuthToken(responseData.access_token);
-      await fetchCurrentUser(responseData.access_token);
-
+  
+      if (!responseData.token) {
+        throw new Error("No authentication token received. Please try again.");
+      }
+  
+      sessionStorage.setItem("token", responseData.token);
+      setAuthToken(responseData.token);
+      await fetchCurrentUser(responseData.token);
+  
       toast.update(toastId, { render: "Login successful!", type: "success", isLoading: false, autoClose: 2000 });
       setTimeout(() => navigate("/dashboard"), 500);
     } catch (error) {
@@ -81,6 +83,7 @@ export const UserProvider = ({ children }) => {
       console.error("Login error:", error);
     }
   };
+  
 
   // User Logout
   const logout = () => {
