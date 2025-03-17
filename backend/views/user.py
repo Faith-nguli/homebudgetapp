@@ -63,35 +63,35 @@ def create_user():
         db.session.rollback()
         return jsonify({"success": False, "error": "Registration failed. Please try again."}), 500
 
-# @user_bp.route("/login", methods=["POST"])
-# def login():
-#     data = request.get_json()
-#     if not data:
-#         return jsonify({"status": "error", "message": "Invalid input"}), 400
+@user_bp.route("/login", methods=["POST"])
+def login():
+    data = request.get_json()
+    if not data:
+        return jsonify({"status": "error", "message": "Invalid input"}), 400
 
-#     email = data.get("email")
-#     password = data.get("password")
+    email = data.get("email")
+    password = data.get("password")
 
-#     if not email or not password:
-#         return jsonify({"status": "error", "message": "Email and password are required"}), 400
+    if not email or not password:
+        return jsonify({"status": "error", "message": "Email and password are required"}), 400
 
-#     user = User.query.filter(User.email.ilike(email)).first()
-#     if not user or not check_password_hash(user.password, password):
-#         return jsonify({"status": "error", "message": "Invalid email or password"}), 401
+    user = User.query.filter(User.email.ilike(email)).first()
+    if not user or not check_password_hash(user.password, password):
+        return jsonify({"status": "error", "message": "Invalid email or password"}), 401
 
-#     access_token = create_access_token(identity=user.id)
-#     return jsonify({
-#         "status": "success",
-#         "message": "Login successful",
-#         "data": {
-#             "user": {
-#                 "id": user.id,
-#                 "username": user.username,
-#                 "email": user.email
-#             },
-#             "access_token": access_token
-#         }
-#     }), 200
+    access_token = create_access_token(identity=user.id)
+    return jsonify({
+        "status": "success",
+        "message": "Login successful",
+        "data": {
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email
+            },
+            "access_token": access_token
+        }
+    }), 200
 
 @user_bp.route("/user", methods=["GET"])
 @jwt_required()
