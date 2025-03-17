@@ -59,26 +59,16 @@ def create_budget():
         return jsonify({"error": f"Database error: {str(e)}"}), 500
 
 # ✅ **Fetch Budgets for Logged-in User**
-@budget_bp.route('/budgets', methods=['GET'])
-@jwt_required()  # Ensure user is authenticated
+@budget_bp.route("/budgets", methods=["GET"])
+@jwt_required()
 def get_budgets():
     try:
-        current_user_id = get_jwt_identity()  # Get logged-in user ID
-
-        # Fetch budgets for the logged-in user only
-        budgets = Budget.query.filter_by(user_id=current_user_id).all()
-
-        return jsonify([{
-            "id": budget.id,
-            "category": budget.category,
-            "limit": budget.limit,
-            "amount": budget.amount,
-            "image_url": budget.image_url
-        } for budget in budgets]), 200
-
+        user_id = get_jwt_identity()
+        budgets = Budget.query.filter_by(user_id=user_id).all()
+        return jsonify([budget.to_dict() for budget in budgets]), 200
     except Exception as e:
-        traceback.print_exc()  # Print full error in Flask logs
-        return jsonify({"error": f"Database error: {str(e)}"}), 500
+        print(f"Error fetching budgets: {str(e)}")  # Debugging output
+        return jsonify({"error": "Internal Server Error"}), 500
 
 
 
@@ -100,13 +90,12 @@ def get_budget(budget_id):
 
     return jsonify(format_budget(budget)), 200
 
-def format_budget(budget):
-    return {
+    def format_budget(budget):
+        return {
         "id": budget.id,
         "category": budget.category,
         "limit": budget.limit,
         "current_spent": budget.current_spent,
-        "savings": budget.savings,
         "user_id": budget.user_id,
         "image_url": budget.image_url,
     }

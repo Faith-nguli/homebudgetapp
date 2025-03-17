@@ -16,44 +16,42 @@ const Dashboard = () => {
 
   // Fetch budgets from the server
   const fetchBudgets = async () => {
-    setLoading(true);
-    setError(null);
-
     try {
       const token = localStorage.getItem("token");
-      if (!token) throw new Error("Authentication token is missing.");
-
-      const user = jwtDecode(token);
-      if (!user?.sub) throw new Error("Invalid user data.");
-
+      if (!token) {
+        throw new Error("Authentication token is missing. Please log in again.");
+      }
+  
+      console.log("Using token:", token); // Debugging
+  
       const response = await fetch("https://homebudgetapp-1.onrender.com/budgets", {
         method: "GET",
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
       });
-
+  
       if (response.status === 401) {
-        console.error("Unauthorized access. Redirecting to login.");
+        console.error("Unauthorized. Clearing token and redirecting to login.");
         localStorage.removeItem("token");
-        navigate("/login");
+        window.location.href = "/login"; // Redirect to login page
         return;
       }
-
+  
       if (!response.ok) {
-        throw new Error(`Failed to fetch budgets: ${response.statusText}`);
+        throw new Error("Failed to fetch budgets");
       }
-
+  
       const data = await response.json();
-      setBudgets(data);
+      return data;
     } catch (error) {
       console.error("Fetch budgets error:", error);
-      setError(error.message);
-    } finally {
-      setLoading(false);
+      alert(error.message);
+      return null;
     }
   };
+  
 
   // Fetch budgets on component mount
   useEffect(() => {

@@ -17,12 +17,12 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!email || !password) {
-      toast.error("Please enter both email and password.");
-      return;
-    }
-
+    
+    const email = e.target.email.value;
+    const password = e.target.password.value;
+    
+    console.log("Attempting login with:", { email, password }); // Debugging
+  
     try {
       const response = await fetch("https://homebudgetapp-1.onrender.com/login", {
         method: "POST",
@@ -31,28 +31,28 @@ export default function Login() {
         },
         body: JSON.stringify({ email, password }),
       });
-
+  
       const data = await response.json();
-
-      if (response.ok) {
-        localStorage.setItem("token", data.data.access_token);
-
-        if (setUser) {
-          setUser(data.data.user); // Ensure setUser exists before calling it
-        } else {
-          console.warn("setUser is not available in UserContext");
-        }
-
-        toast.success("Login successful!");
-        navigate("/dashboard");
-      } else {
-        toast.error(data.message || "Invalid credentials.");
+      console.log("Login response:", data); // Debugging
+  
+      if (!response.ok) {
+        throw new Error(data.error || "Login failed");
       }
+  
+      if (!data.access_token) {
+        throw new Error("Access token missing in response!");
+      }
+  
+      localStorage.setItem("token", data.access_token);
+      console.log("Token saved:", data.access_token); // Debugging
+  
+      window.location.href = "/dashboard"; // Redirect after login
     } catch (error) {
-      console.error("Login failed:", error);
-      toast.error("Server error. Please try again.");
+      console.error("Login error:", error);
+      alert(error.message);
     }
   };
+  
 
   return (
     <div className="login-container">

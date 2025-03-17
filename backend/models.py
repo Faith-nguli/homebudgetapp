@@ -38,12 +38,11 @@ class Budget(db.Model):
 
     def to_dict(self):
         return {
-            "id": self.id,
-            "category": self.category,
-            "amount": self.amount,
-            "limit": self.limit,
-            "image_url": self.image_url,
-        }
+        "id": self.id,
+        "category": self.category,
+        "limit": self.limit,
+        "current_spent": self.current_spent, 
+    }
     
 
     @property
