@@ -83,13 +83,34 @@ def get_budgets():
 
 
 # ✅ **Fetch a Single Budget by ID**
-@budget_bp.route('/budgets/<int:budget_id>', methods=['GET'])
+
+@budget_bp.route("/budgets/<int:budget_id>", methods=["GET"])
 @jwt_required()
 def get_budget(budget_id):
+    # Get the budget
     budget = Budget.query.get_or_404(budget_id)
-    if budget.user_id != get_jwt_identity():
+
+    # Get the JWT identity (should be user ID)
+    user_id = get_jwt_identity()
+    print(f"JWT Identity: {user_id}, Budget User ID: {budget.user_id}")  # Debugging
+
+    # Ensure the user is authorized
+    if budget.user_id != int(user_id):  # Convert user_id to int if necessary
         return jsonify({"error": "Unauthorized"}), 403
+
     return jsonify(format_budget(budget)), 200
+
+def format_budget(budget):
+    return {
+        "id": budget.id,
+        "category": budget.category,
+        "limit": budget.limit,
+        "current_spent": budget.current_spent,
+        "savings": budget.savings,
+        "user_id": budget.user_id,
+        "image_url": budget.image_url,
+    }
+
 
 
 # ✅ **Update Budget**

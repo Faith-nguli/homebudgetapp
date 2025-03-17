@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import jwtDecode from "jwt-decode";
 import Button from "../components/Button";
 import ExpenseCard from "../components/ExpenseCard";
+import { toast } from "react-toastify";
 
 
 const Dashboard = () => {
@@ -64,6 +65,57 @@ const Dashboard = () => {
     const interval = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(interval);
   }, []);
+
+
+  const fetchBudgetById = async (budgetId) => {
+    try {
+      const navigate = useNavigate();
+      const token = localStorage.getItem("token");
+  
+      if (!token) {
+        throw new Error("No token found. Please log in.");
+      }
+  
+      console.log("Token being sent:", token); // Debugging
+  
+      const response = await fetch(
+        `https://homebudgetapp-1.onrender.com/budgets/${budgetId}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+  
+      if (response.status === 401) {
+        console.error("Unauthorized access. Redirecting to login.");
+        localStorage.removeItem("token");
+        navigate("/login");
+        return null;
+      }
+  
+      if (response.status === 403) {
+        throw new Error("You are not authorized to access this budget.");
+      }
+  
+      if (response.status === 404) {
+        throw new Error("Budget not found.");
+      }
+  
+      if (!response.ok) {
+        throw new Error("Failed to fetch budget.");
+      }
+  
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Fetch single budget error:", error);
+      toast.error(error.message);
+      return null;
+    }
+  };
 
   // Handle budget deletion
   const handleDelete = async (budgetId) => {
