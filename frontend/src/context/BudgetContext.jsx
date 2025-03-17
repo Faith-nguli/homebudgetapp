@@ -111,48 +111,51 @@ export const BudgetProvider = ({ children }) => {
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
-
+  
     const formData = new FormData();
     formData.append("image", file);
-
+  
     const toastId = toast.loading("Uploading image...");
-
+  
     try {
       const token = localStorage.getItem("token");
       if (!token) {
         throw new Error("No token found. Please log in.");
       }
-
+  
       const response = await fetch("https://homebudgetapp-1.onrender.com/budgets/upload", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
-
+  
       const data = await response.json();
-      if (response.ok) {
-        setImageUrl(data.image_url);
-        toast.update(toastId, {
-          render: "Image uploaded successfully",
-          type: "success",
-          isLoading: false,
-          autoClose: 3000,
-        });
-      } else {
+      if (!response.ok) {
         throw new Error(data.error || "Image upload failed");
       }
+  
+      // ✅ Update the budget state with the new image URL
+      setBudget((prev) => ({ ...prev, image: data.image_url }));
+  
+      toast.update(toastId, {
+        render: "Image uploaded successfully",
+        type: "success",
+        isLoading: false,
+        autoClose: true, // Allows default auto-close behavior
+      });
+  
     } catch (error) {
       console.error("Error uploading image:", error);
+  
       toast.update(toastId, {
         render: error.message || "Image upload failed",
         type: "error",
         isLoading: false,
-        autoClose: 3000,
+        autoClose: true,
       });
     }
   };
+  
 
   // 🔹 Add New Budget
   const addBudget = async (budgetData) => {

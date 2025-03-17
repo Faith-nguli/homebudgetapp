@@ -1,3 +1,4 @@
+import traceback
 from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -9,42 +10,35 @@ user_bp = Blueprint("user_bp", __name__)
 
 @user_bp.route("/user", methods=['POST'])
 def create_user():
-    from app import mail
-    data = request.get_json()
-    
-    username = data.get('username')
-    email = data.get('email')
-    password = data.get('password')
-
-    if not username or not email or not password:
-        return jsonify({"success": False, "error": "Missing required fields"}), 400
-
-    if User.query.filter_by(username=username).first():
-        return jsonify({"success": False, "error": "Username already exists"}), 400
-    
-    if User.query.filter_by(email=email).first():
-        return jsonify({"success": False, "error": "Email already exists"}), 400
-
-    if len(password) < 8:
-        return jsonify({"success": False, "error": "Password must be at least 8 characters long"}), 400
-
     try:
+        data = request.get_json()
+        username = data.get('username')
+        email = data.get('email')
+        password = data.get('password')
+
+        # ✅ Validate required fields
+        if not username or not email or not password:
+            return jsonify({"success": False, "error": "Missing required fields"}), 400
+
+        # ✅ Check if user already exists
+        if User.query.filter_by(username=username).first():
+            return jsonify({"success": False, "error": "Username already exists"}), 400
+        if User.query.filter_by(email=email).first():
+            return jsonify({"success": False, "error": "Email already exists"}), 400
+
+        # ✅ Password validation
+        if len(password) < 8:
+            return jsonify({"success": False, "error": "Password must be at least 8 characters long"}), 400
+
+        # ✅ Hash password and create user
         hashed_password = generate_password_hash(password)
         new_user = User(username=username, email=email, password=hashed_password)
+
         db.session.add(new_user)
         db.session.commit()
 
+        # ✅ Generate access token
         access_token = create_access_token(identity=new_user.id)
-        
-        try:
-            msg = Message(
-                subject="Welcome to Home Budget Application",
-                recipients=[email],
-                body=f"Hello {username},\n\nThank you for registering with us!\n\nBest regards,\nHomeBudget Customer Service"
-            )
-            mail.send(msg)
-        except Exception as e:
-            print(f"Failed to send email: {e}")
 
         return jsonify({
             "success": True,
@@ -61,11 +55,14 @@ def create_user():
 
     except Exception as e:
         db.session.rollback()
+        print(f"❌ Registration error: {traceback.format_exc()}")  # Logs full error traceback
         return jsonify({"success": False, "error": "Registration failed. Please try again."}), 500
+
 
 @user_bp.route("/login", methods=["POST"])
 def login():
     data = request.get_json()
+    print("Received login request:", data) 
     if not data:
         return jsonify({"status": "error", "message": "Invalid input"}), 400
 
@@ -92,6 +89,24 @@ def login():
             "access_token": access_token
         }
     }), 200
+
+@user_bp.route("/user", methods=["GET"])
+@jwt_required()
+def get_user():
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        return jsonify({
+            "id": user.id,
+            "username": user.username,
+            "email": user.email
+        }), 200
+    except Exception as e:
+        print(f"Error fetching user: {str(e)}")  # Debugging
+        return jsonify({"error": "Internal Server Error"}), 500
+
 
 @user_bp.route("/user", methods=["GET"])
 @jwt_required()

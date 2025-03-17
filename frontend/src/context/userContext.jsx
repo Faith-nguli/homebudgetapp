@@ -104,32 +104,44 @@ export const UserProvider = ({ children }) => {
             }),
         });
 
-        // Log the response
         const responseData = await response.json();
-        console.log("🔍 Full server response:", responseData);
+        console.log("🔍 Full server response:", responseData); // Debugging
 
         if (!response.ok) {
             throw new Error(responseData.error || "Registration failed");
         }
 
-        // ✅ Fix: Access token is inside responseData.data.access_token
-        const token = responseData.data?.access_token;  
+        // ✅ Ensure data & access token exist
+        const token = responseData?.data?.access_token;
         if (!token) {
             throw new Error("No access token received");
         }
 
-        // ✅ Store token and set authentication state
-        sessionStorage.setItem("token", token);
+        // ✅ Store token and update authentication state
+        localStorage.setItem("token", token);  // Use localStorage for persistent login
         setAuthToken(token);
         fetchCurrentUser(token);
 
-        toast.update(toastId, { render: "Registration successful!", type: "success", isLoading: false, autoClose: 2000 });
+        toast.update(toastId, {
+            render: "Registration successful!",
+            type: "success",
+            isLoading: false,
+            autoClose: 2000,
+        });
+
         setTimeout(() => navigate("/dashboard"), 500);
     } catch (error) {
-        toast.update(toastId, { render: error.message || "Registration failed", type: "error", isLoading: false, autoClose: 3000 });
         console.error("❌ Registration error:", error);
+        
+        toast.update(toastId, {
+            render: error.message || "Registration failed",
+            type: "error",
+            isLoading: false,
+            autoClose: 3000,
+        });
     }
 };
+
 
 
 

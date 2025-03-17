@@ -11,8 +11,8 @@ expense_bp = Blueprint("expense_bp", __name__)
 @jwt_required()
 def create_expense():
     data = request.get_json()
-    if not all(k in data for k in ["amount", "category", "date"]):
-        return jsonify({"error": "Fields 'amount', 'category', and 'date' are required."}), 400
+    if not all(k in data for k in ["current_spent", "category", "date"]):
+        return jsonify({"error": "Fields 'current_spent', 'category', and 'date' are required."}), 400
 
     user_id = get_jwt_identity()
 
@@ -22,7 +22,7 @@ def create_expense():
         return jsonify({"error": "Invalid date format. Use YYYY-MM-DD."}), 400
 
     expense = Expense(
-        amount=data["amount"],
+        current_spent=data["current_spent"],
         category=data["category"],
         date=parsed_date,
         user_id=user_id
@@ -36,7 +36,7 @@ def create_expense():
             "message": "Expense logged successfully!",
             "expense": {
                 "id": expense.id,
-                "amount": expense.amount,
+                "current_spent": expense.current_spent,
                 "category": expense.category,
                 "date": expense.date.strftime("%Y-%m-%d")
             }
@@ -59,7 +59,7 @@ def get_expenses():
         expense_list = [
             {
                 "id": expense.id,
-                "amount": expense.amount,
+                "current_spent": expense.current_spent,
                 "category": expense.category,
                 "date": expense.date.strftime("%Y-%m-%d")  # Format date for JSON
             }
@@ -85,7 +85,7 @@ def get_expense(expense_id):
 
     return jsonify({
         "id": expense.id,
-        "amount": expense.amount,
+        "current_spent": expense.current_spent,
         "category": expense.category,
         "date": expense.date.strftime("%Y-%m-%d")  # Format date for JSON
     }), 200
@@ -96,8 +96,8 @@ def update_expense(expense_id):
     data = request.get_json()
 
     # Check if required fields exist
-    if not all(k in data for k in ["amount", "category", "date"]):
-        return jsonify({"error": "Fields 'amount', 'category', and 'date' are required."}), 400
+    if not all(k in data for k in ["current_spent", "category", "date"]):
+        return jsonify({"error": "Fields 'current_spent', 'category', and 'date' are required."}), 400
 
     expense = Expense.query.get(expense_id)
     if not expense:
@@ -112,7 +112,7 @@ def update_expense(expense_id):
         return jsonify({"error": "Invalid date. Please check if the date exists in the given month."}), 400
 
     # Update fields
-    expense.amount = data["amount"]
+    expense.current_spent = data["current_spent"]
     expense.category = data["category"]
     expense.date = parsed_date  # Store as a `date` object
 
@@ -123,7 +123,7 @@ def update_expense(expense_id):
             "message": "Expense updated successfully!",
             "expense": {
                 "id": expense.id,
-                "amount": expense.amount,
+                "current_spent": expense.current_spent,
                 "category": expense.category,
                 "date": expense.date.strftime("%Y-%m-%d")  # Convert back to string for JSON response
             }

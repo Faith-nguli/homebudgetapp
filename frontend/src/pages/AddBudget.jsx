@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+const API_BASE_URL = "https://homebudgetapp-1.onrender.com";
+
 const AddBudget = () => {
   const navigate = useNavigate();
   const [budget, setBudget] = useState({
@@ -15,7 +17,7 @@ const AddBudget = () => {
     const { name, value } = e.target;
     setBudget((prev) => {
       const updatedBudget = { ...prev, [name]: value };
-      if (["amount", "limit"].includes(name)) {
+      if (name === "amount" || name === "limit") {
         updatedBudget.savings = Math.max(
           parseFloat(updatedBudget.limit || 0) - parseFloat(updatedBudget.amount || 0),
           0
@@ -36,14 +38,17 @@ const AddBudget = () => {
     formData.append("image", file);
 
     try {
-      const response = await fetch("http://localhost:5000/budgets/upload", {
+      const response = await fetch(`${API_BASE_URL}/budgets/upload`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
       const data = await response.json();
-      if (response.ok) setBudget((prev) => ({ ...prev, image: data.image_url }));
-      else alert("Image upload failed: " + (data.error || "Unknown error"));
+      if (response.ok) {
+        setBudget((prev) => ({ ...prev, image: data.image_url }));
+      } else {
+        alert("Image upload failed: " + (data.error || "Unknown error"));
+      }
     } catch (error) {
       console.error("Error uploading image:", error);
     }
@@ -64,7 +69,7 @@ const AddBudget = () => {
     };
 
     try {
-      const response = await fetch("https://homebudgetapp-1.onrender.com/budgets", {
+      const response = await fetch(`${API_BASE_URL}/budgets`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -72,10 +77,8 @@ const AddBudget = () => {
         },
         body: JSON.stringify(budgetData),
       });
-
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Failed to add budget");
-
       navigate("/dashboard");
     } catch (error) {
       console.error("Error submitting budget:", error);

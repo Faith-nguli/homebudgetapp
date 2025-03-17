@@ -10,39 +10,34 @@ auth_bp = Blueprint("auth_bp", __name__)
 @auth_bp.route("/user", methods=['POST'])
 def create_user():
     try:
-        from app import mail  # Lazy import to avoid circular import
         data = request.get_json()
+        username = data.get('username')
+        email = data.get('email')
+        password = data.get('password')
 
-        username = data.get('username', '').strip()
-        email = data.get('email', '').strip().lower()
-        password = data.get('password', '')
-
+        #  Validate required fields
         if not username or not email or not password:
             return jsonify({"success": False, "error": "Missing required fields"}), 400
-        if len(password) < 8:
-            return jsonify({"success": False, "error": "Password must be at least 8 characters long"}), 400
+
+        # Check if user already exists
         if User.query.filter_by(username=username).first():
             return jsonify({"success": False, "error": "Username already exists"}), 400
         if User.query.filter_by(email=email).first():
             return jsonify({"success": False, "error": "Email already exists"}), 400
 
+        # Password validation
+        if len(password) < 8:
+            return jsonify({"success": False, "error": "Password must be at least 8 characters long"}), 400
+
+        # Hash password and create user
         hashed_password = generate_password_hash(password)
         new_user = User(username=username, email=email, password=hashed_password)
 
         db.session.add(new_user)
         db.session.commit()
 
+        # Generate access token
         access_token = create_access_token(identity=new_user.id)
-        
-        try:
-            msg = Message(
-                subject="Welcome to Home Budget Application",
-                recipients=[email],
-                body=f"Hello {username},\n\nThank you for registering with us!\n\nBest regards,\nHomeBudget Customer Service"
-            )
-            mail.send(msg)
-        except Exception as e:
-            print(f"⚠️ Email sending failed: {e}")
 
         return jsonify({
             "success": True,
@@ -59,12 +54,14 @@ def create_user():
 
     except Exception as e:
         db.session.rollback()
-        print(f"❌ Registration error: {type(e).__name__}: {e}")
+        print(f"❌ Registration error: {traceback.format_exc()}")  # Logs full error traceback
         return jsonify({"success": False, "error": "Registration failed. Please try again."}), 500
+
 
 @auth_bp.route("/login", methods=["POST"])
 def login():
    data = request.get_json()
+   print("Received login request:", data) 
    if not data:
        return jsonify({"status": "error", "message": "Invalid input"}), 400
   

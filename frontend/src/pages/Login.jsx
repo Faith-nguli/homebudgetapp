@@ -17,11 +17,11 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    const email = e.target.email.value;
-    const password = e.target.password.value;
-    
-    console.log("Attempting login with:", { email, password }); // Debugging
+  
+    const loginData = {
+      email,
+      password,
+    };
   
     try {
       const response = await fetch("https://homebudgetapp-1.onrender.com/login", {
@@ -29,29 +29,24 @@ export default function Login() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify(loginData),
       });
   
       const data = await response.json();
-      console.log("Login response:", data); // Debugging
-  
+      
       if (!response.ok) {
-        throw new Error(data.error || "Login failed");
+        throw new Error(data.message || "Login failed");
       }
   
-      if (!data.access_token) {
-        throw new Error("Access token missing in response!");
-      }
+      localStorage.setItem("token", data.token); // Save token
+      navigate("/dashboard"); // Redirect to dashboard
   
-      localStorage.setItem("token", data.access_token);
-      console.log("Token saved:", data.access_token); // Debugging
-  
-      window.location.href = "/dashboard"; // Redirect after login
     } catch (error) {
       console.error("Login error:", error);
       alert(error.message);
     }
   };
+  
   
 
   return (
