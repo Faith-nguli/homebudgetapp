@@ -16,9 +16,14 @@ const Dashboard = () => {
   const [error, setError] = useState(null);
   const [editingBudget, setEditingBudget] = useState(null);
   const [totalSavings, setTotalSavings] = useState(0);
+  const [totalExpenses, setTotalExpenses] = useState(0);
 
   // Function to calculate savings (limit - spent)
   const calculateSavings = (budget) => budget.limit - (budget.spent || 0);
+
+  const TotalExpenses = () => {
+    return expenses.reduce((total, expense) => total + parseFloat(expense.amount || 0), 0);
+  };
 
   // Function to fetch budgets
   const fetchBudgets = async (userId) => {

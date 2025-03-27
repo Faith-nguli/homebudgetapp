@@ -1,11 +1,12 @@
 import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
-
+import { BudgetContext } from "../context/BudgetContext";  // Add this import
 import { toast } from "react-toastify";
 
 const AddExpense = () => {
   const navigate = useNavigate();
   const { budgets } = useContext(BudgetContext);
+  const { addExpense } = useContext(ExpenseContext);
   const [expense, setExpense] = useState({
     category: "",
     amount: "",
@@ -25,7 +26,7 @@ const AddExpense = () => {
       toast.error("Category and amount are required");
       return;
     }
-
+  
     try {
       const token = localStorage.getItem("token");
       const response = await fetch("http://127.0.0.1:5000/expenses", {
@@ -41,12 +42,14 @@ const AddExpense = () => {
           description: expense.description
         }),
       });
-
+  
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to add expense");
       }
-
+  
+      const newExpense = await response.json(); // Get the newly added expense
+      addExpense(newExpense); // Update the context
       toast.success("Expense added successfully!");
       navigate("/dashboard");
     } catch (error) {
@@ -68,6 +71,10 @@ const AddExpense = () => {
             required
           >
             <option value="">Select Category</option>
+            <option value="food">Food</option>
+            <option value="transport">Transport</option>
+            <option value="entertainment">Entertainment</option>
+            <option value="rent">Rent</option>
             {budgets.map(budget => (
               <option key={budget.id} value={budget.category}>
                 {budget.category}
