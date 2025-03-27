@@ -1,185 +1,214 @@
-import os
-import traceback
-from flask import Blueprint, jsonify, request, send_from_directory
-from werkzeug.utils import secure_filename
-from models import db, Budget
+from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from werkzeug.utils import secure_filename
+import os
+import logging
+import traceback
+from datetime import datetime
+from models import Budget, Expense, db
 
-# Initialize Blueprint
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
 budget_bp = Blueprint("budget_bp", __name__)
 
-# Allowed Image Types
-ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg"}
 UPLOAD_FOLDER = "uploads/budget_images"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)  # Ensure upload directory exists
+ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg"}
 
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
 
 def allowed_file(filename):
-    """Check if the file has a valid extension."""
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def calculate_savings(limit, spent):
+    """Calculate savings ensuring it's never negative"""
+    return max(0, float(limit) - float(spent))
 
-def format_budget(budget):
-    """Helper function to format budget response."""
+def get_expenses_total(user_id, category):
+    """Helper to get total expenses for a category"""
+    return db.session.query(db.func.sum(Expense.amount)).filter_by(
+        user_id=user_id,
+        category=category
+    ).scalar() or 0.0
+
+def format_budget(budget, expenses_amount=0):
     return {
         "id": budget.id,
         "category": budget.category,
-        "limit": budget.limit,
+        "saving": calculate_savings(budget.limit, expenses_amount),
+        "limit": float(budget.limit) if budget.limit is not None else 0.0,
+        "spent": float(expenses_amount),
         "user_id": budget.user_id,
         "image_url": budget.image_url
     }
 
-
-# ✅ **Create Budget**
 @budget_bp.route('/budgets', methods=['POST'])
 @jwt_required()
 def create_budget():
+    data = request.get_json()
+    logger.debug(f"Received data: {data}")
+
+    if not data or 'category' not in data or 'limit' not in data:
+        return jsonify({"error": "Category and limit are required"}), 400
+
+    user_id = get_jwt_identity()
+
     try:
-        data = request.get_json()
-        current_user_id = get_jwt_identity()
+        limit = float(data['limit'])
+        if limit <= 0:
+            return jsonify({"error": "Limit must be positive"}), 400
+    except ValueError:
+        return jsonify({"error": "Invalid limit value"}), 400
 
-        if not data.get('category') or not data.get('limit'):
-            return jsonify({"error": "Category and limit are required"}), 422
-
-        budget = Budget(
+    try:
+        new_budget = Budget(
             category=data['category'],
-            limit=float(data['limit']),
-            user_id=current_user_id,
+            limit=limit,
+            user_id=user_id,
             image_url=data.get('image_url')
         )
-
-        db.session.add(budget)
+        db.session.add(new_budget)
         db.session.commit()
-        return jsonify({"message": "Budget created successfully!"}), 201
-
-    except ValueError:
-        return jsonify({"error": "Invalid number format for limit"}), 422
+        return jsonify({
+            "message": "Budget created successfully",
+            "budget": format_budget(new_budget)
+        }), 201
     except Exception as e:
-        traceback.print_exc()  # Print full error in console
-        return jsonify({"error": f"Database error: {str(e)}"}), 500
+        db.session.rollback()
+        logger.error(f"Error creating budget: {str(e)}")
+        logger.error(traceback.format_exc())
+        return jsonify({"error": "An error occurred while creating the budget"}), 500
 
-# ✅ **Fetch Budgets for Logged-in User**
 @budget_bp.route("/budgets", methods=["GET"])
 @jwt_required()
 def get_budgets():
     try:
         user_id = get_jwt_identity()
         budgets = Budget.query.filter_by(user_id=user_id).all()
-        return jsonify([budget.to_dict() for budget in budgets]), 200
+        return jsonify([format_budget(b, get_expenses_total(user_id, b.category)) for b in budgets]), 200
     except Exception as e:
-        print(f"Error fetching budgets: {str(e)}")  # Debugging output
-        return jsonify({"error": "Internal Server Error"}), 500
-
-
-
-# ✅ **Fetch a Single Budget by ID**
+        logger.error(f"Error fetching budgets: {e}")
+        return jsonify({"error": "An error occurred while fetching budgets"}), 500
 
 @budget_bp.route("/budgets/<int:budget_id>", methods=["GET"])
 @jwt_required()
 def get_budget(budget_id):
-    # Get the budget
-    budget = Budget.query.get_or_404(budget_id)
+    try:
+        user_id = get_jwt_identity()
+        budget = Budget.query.get_or_404(budget_id)
+        if budget.user_id != user_id:
+            return jsonify({"error": "Unauthorized"}), 403
+        total_expenses = get_expenses_total(user_id, budget.category)
+        return jsonify(format_budget(budget, total_expenses)), 200
+    except Exception as e:
+        logger.error(f"Error fetching budget: {e}")
+        return jsonify({"error": "An error occurred while fetching budget"}), 500
 
-    # Get the JWT identity (should be user ID)
-    user_id = get_jwt_identity()
-    print(f"JWT Identity: {user_id}, Budget User ID: {budget.user_id}")  # Debugging
-
-    # Ensure the user is authorized
-    if budget.user_id != int(user_id):  # Convert user_id to int if necessary
-        return jsonify({"error": "Unauthorized"}), 403
-
-    return jsonify(format_budget(budget)), 200
-
-    def format_budget(budget):
-        return {
-        "id": budget.id,
-        "category": budget.category,
-        "limit": budget.limit,
-        "current_spent": budget.current_spent,
-        "user_id": budget.user_id,
-        "image_url": budget.image_url,
-    }
-
-
-
-# ✅ **Update Budget**
-@budget_bp.route('/budgets/<int:budget_id>', methods=['PUT'])
+@budget_bp.route("/budgets/<int:budget_id>", methods=["PUT"])
 @jwt_required()
 def update_budget(budget_id):
-    budget = Budget.query.get_or_404(budget_id)
-    if budget.user_id != get_jwt_identity():
-        return jsonify({"error": "Unauthorized"}), 403
-
     try:
+        user_id = get_jwt_identity()
+        budget = Budget.query.get_or_404(budget_id)
+        if budget.user_id != user_id:
+            return jsonify({"error": "Unauthorized"}), 403
+        
         data = request.get_json()
-        budget.category = data.get('category', budget.category)
-        budget.limit = float(data.get('limit', budget.limit))
-        budget.image_url = data.get('image_url', budget.image_url)
-
+        if 'category' in data:
+            budget.category = data['category']
+        if 'limit' in data:
+            try:
+                budget.limit = float(data['limit'])
+                if budget.limit < 0:
+                    return jsonify({"error": "Limit must be positive"}), 400
+            except ValueError:
+                return jsonify({"error": "Invalid limit value"}), 400
+        
         db.session.commit()
-        return jsonify(format_budget(budget)), 200
-
-    except ValueError:
-        return jsonify({"error": "Invalid number format for limit"}), 422
+        total_expenses = get_expenses_total(user_id, budget.category)
+        return jsonify(format_budget(budget, total_expenses)), 200
     except Exception as e:
-        return jsonify({"error": f"Database error: {str(e)}"}), 500
+        db.session.rollback()
+        logger.error(f"Error updating budget: {e}")
+        return jsonify({"error": "An error occurred while updating budget"}), 500
 
+@budget_bp.route("/expenses", methods=["GET"])
+@jwt_required()
+def get_expenses():
+    try:
+        user_id = get_jwt_identity()
+        expenses = Expense.query.filter_by(user_id=user_id).all()
+        return jsonify([{
+            'id': e.id,
+            'category': e.category,
+            'amount': float(e.amount),
+            'date': e.date.strftime('%Y-%m-%d') if e.date else None
+        } for e in expenses]), 200
+    except Exception as e:
+        logger.error(f"Error fetching expenses: {e}")
+        return jsonify({"error": "An error occurred while fetching expenses"}), 500
 
-# ✅ **Delete Budget**
-@budget_bp.route('/budgets/<int:budget_id>', methods=['DELETE'])
+@budget_bp.route("/budgets/<int:budget_id>", methods=["DELETE"])
 @jwt_required()
 def delete_budget(budget_id):
-    budget = Budget.query.get_or_404(budget_id)
-    if budget.user_id != get_jwt_identity():
-        return jsonify({"error": "Unauthorized"}), 403
+    try:
+        budget = Budget.query.get_or_404(budget_id)
+        user_id = int(get_jwt_identity())
+        
+        if budget.user_id != user_id:
+            return jsonify({"error": "Unauthorized"}), 403
+        
+        db.session.delete(budget)
+        db.session.commit()
+        return jsonify({"message": "Budget deleted successfully"}), 200
 
-    db.session.delete(budget)
-    db.session.commit()
-    return jsonify({"message": "Budget deleted successfully"}), 200
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error deleting budget: {e}")
+        return jsonify({"error": "An error occurred while deleting budget"}), 500
 
-
-# ✅ **Upload Budget Image**
-@budget_bp.route("/budgets/upload", methods=["POST"])
+@budget_bp.route("/expenses", methods=["POST"])
 @jwt_required()
-def upload_budget_image():
-    if "image" not in request.files:
-        return jsonify({"error": "No image file provided"}), 400
+def create_expense():
+    try:
+        data = request.get_json()
+        user_id = int(get_jwt_identity())
 
-    file = request.files["image"]
+        # Validate required fields
+        if not data or 'category' not in data or 'amount' not in data:
+            return jsonify({"error": "Missing required fields (category, amount)"}), 400
 
-    if file.filename == "":
-        return jsonify({"error": "No selected file"}), 400
+        # Validate amount
+        try:
+            amount = float(data['amount'])
+            if amount <= 0:
+                return jsonify({"error": "Amount must be positive"}), 400
+        except ValueError:
+            return jsonify({"error": "Invalid amount value"}), 400
 
-    if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        filepath = os.path.join(UPLOAD_FOLDER, filename)
-        file.save(filepath)
+        # Create new expense
+        new_expense = Expense(
+            category=data['category'],
+            amount=amount,
+            user_id=user_id,
+            date=datetime.strptime(data['date'], '%Y-%m-%d') if 'date' in data else datetime.utcnow()
+        )
 
-        # Generate Full Image URL
-        server_url = request.host_url.rstrip("/")
-        image_url = f"{server_url}/uploads/budget_images/{filename}"
+        db.session.add(new_expense)
+        db.session.commit()
 
-        return jsonify({"message": "Image uploaded successfully!", "image_url": image_url}), 201
+        return jsonify({
+            "message": "Expense created successfully",
+            "expense": {
+                "id": new_expense.id,
+                "category": new_expense.category,
+                "amount": float(new_expense.amount),
+                "date": new_expense.date.strftime('%Y-%m-%d')
+            }
+        }), 201
 
-    return jsonify({"error": "Invalid file type. Allowed: png, jpg, jpeg"}), 400
-
-
-# ✅ **Serve Budget Image**
-@budget_bp.route("/uploads/budget_images/<filename>")
-def serve_budget_image(filename):
-    return send_from_directory(UPLOAD_FOLDER, filename)
-
-
-# ✅ **Fetch Budgets by User ID (Admin/Optional Public Route)**
-@budget_bp.route('/user/<int:user_id>/budgets', methods=['GET'])
-@jwt_required()
-def get_user_budgets_by_id(user_id):
-    """Admin can fetch budgets by user ID, ensuring access control."""
-    current_user_id = get_jwt_identity()
-    
-    # OPTIONAL: Ensure only admin users can fetch others' budgets
-    if current_user_id != user_id:  
-        return jsonify({'msg': 'Unauthorized'}), 403
-
-    budgets = Budget.query.filter_by(user_id=user_id).all()
-    return jsonify([format_budget(budget) for budget in budgets]), 200
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error creating expense: {e}")
+        return jsonify({"error": "An error occurred while creating expense"}), 500

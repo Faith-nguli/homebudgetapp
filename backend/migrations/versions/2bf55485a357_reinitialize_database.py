@@ -1,8 +1,8 @@
-"""initial migrations
+"""Reinitialize database
 
-Revision ID: 1e22ef5bb867
+Revision ID: 2bf55485a357
 Revises: 
-Create Date: 2025-02-04 15:01:43.566082
+Create Date: 2025-03-23 22:49:04.088862
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '1e22ef5bb867'
+revision = '2bf55485a357'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -39,6 +39,7 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('category', sa.String(length=100), nullable=False),
     sa.Column('limit', sa.Float(), nullable=False),
+    sa.Column('saving', sa.Float(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('image_url', sa.String(length=255), nullable=True),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),

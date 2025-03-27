@@ -6,8 +6,7 @@ import { toast } from "react-toastify";
 
 export default function Login() {
   const navigate = useNavigate();
-  const userContext = useContext(UserContext); // Get context
-  const { setUser } = userContext || {}; // Ensure setUser exists
+  const { login } = useContext(UserContext); // Destructure login from context
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -17,37 +16,8 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
-    const loginData = {
-      email,
-      password,
-    };
-  
-    try {
-      const response = await fetch("https://homebudgetapp-1.onrender.com/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(loginData),
-      });
-  
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || "Login failed");
-      }
-  
-      localStorage.setItem("token", data.token); // Save token
-      navigate("/dashboard"); // Redirect to dashboard
-  
-    } catch (error) {
-      console.error("Login error:", error);
-      alert(error.message);
-    }
+    await login(email, password); // Use the login function from context
   };
-  
-  
 
   return (
     <div className="login-container">

@@ -1,65 +1,82 @@
-import React, { createContext, useState, useEffect, useCallback } from "react";
+// ExpenseContext.js
+import React, { createContext, useState, useEffect, useCallback, useContext } from "react";
 import { toast } from "react-toastify";
+import { UserContext } from "./userContext";
 
 export const ExpenseContext = createContext();
 
 export const ExpenseProvider = ({ children }) => {
   const [expenses, setExpenses] = useState([]);
-  const token = sessionStorage.getItem("token");
+  const { current_user } = useContext(UserContext);
 
-  // 🔹 FETCH EXPENSES
+  const getToken = () => localStorage.getItem("token") || "";
+
   const fetchExpenses = useCallback(async () => {
-    if (!token) {
-      console.warn("No token found. User must log in.");
+    const token = getToken();
+    const userId = current_user?.id;
+
+    if (!token || !userId) {
+      console.warn("No token or user ID found. Redirecting to login.");
+      toast.error("Session expired. Please log in.");
       return;
     }
 
     try {
-      const response = await fetch("https://homebudgetapp-1.onrender.com/expenses", {
+      const response = await fetch(`http://127.0.0.1:5000/expenses`, {
         method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch expenses.");
+      if (response.status === 401) {
+        toast.error("Unauthorized. Please log in again.");
+        localStorage.removeItem("token");
+        return;
       }
 
+      if (!response.ok) throw new Error("Failed to fetch expenses.");
+
       const data = await response.json();
-      setExpenses(data);
+      setExpenses(data.data); // Assuming the backend returns { success: true, data: [...] }
     } catch (error) {
       console.error("Fetch error:", error);
       toast.error(error.message || "Error fetching expenses.");
     }
-  }, [token]);
+  }, [current_user]);
 
   useEffect(() => {
-    fetchExpenses();
-  }, [fetchExpenses]);
+    if (current_user?.id) {
+      fetchExpenses();
+    }
+  }, [current_user, fetchExpenses]);
 
-  // 🔹 ADD NEW EXPENSE
   const addExpense = async (expenseData) => {
-    if (!token) {
-      toast.error("No token found. Please log in.");
+    const token = getToken();
+    const userId = current_user?.id;
+
+    if (!token || !userId) {
+      toast.error("Session expired. Please log in.");
       return;
     }
 
     const toastId = toast.loading("Adding expense...");
 
     try {
-      const response = await fetch("https://homebudgetapp-1.onrender.com/expenses", {
+      const response = await fetch("http://127.0.0.1:5000/expenses", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(expenseData),
+        body: JSON.stringify({ ...expenseData, user_id: userId }),
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to add expense.");
+      if (response.status === 401) {
+        toast.error("Unauthorized. Please log in again.");
+        localStorage.removeItem("token");
+        return;
       }
+
+      if (!response.ok) throw new Error("Failed to add expense.");
 
       const newExpense = await response.json();
       setExpenses((prev) => [...prev, newExpense]);

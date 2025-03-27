@@ -18,7 +18,7 @@ class User(db.Model):
 
     # Relationships
     expenses = db.relationship("Expense", backref="user", lazy=True)
-    budgets = db.relationship("Budget", backref="owner", lazy=True)
+    
 
 class Expense(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -26,36 +26,42 @@ class Expense(db.Model):
     amount = db.Column(db.Float, nullable=False)
     date = db.Column(db.DateTime, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+
+    def __repr__(self):
+        return f"<Expense {self.id}: {self.category} - {self.amount}>"
+
     
 
 class Budget(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     category = db.Column(db.String(100), nullable=False)
     limit = db.Column(db.Float, nullable=False)
-    current_spent = db.Column(db.Float, default=0.0, nullable=False)
+    saving = db.Column(db.Float, default=0.0, nullable=False)  
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     image_url = db.Column(db.String(255), nullable=True)
 
     def to_dict(self):
         return {
-        "id": self.id,
-        "category": self.category,
-        "limit": self.limit,
-        "current_spent": self.current_spent, 
-    }
-    
+            "id": self.id,
+            "category": self.category,
+            "limit": self.limit,
+            "saving": self.saving, 
+            "spent": self.spent,
+            "image_url": self.image_url,
+            "user_id": self.user_id,
+        }
 
     @property
-    def current_spent(self):
-        expenses_for_budget = Expense.query.filter_by(user_id=self.user_id, category=self.category).all()
-        total_spent = sum(expense.amount for expense in expenses_for_budget) if expenses_for_budget else 0.0
-        return total_spent
-    
+    def spent(self):
+        expenses_for_budget = Expense.query.filter_by(
+            user_id=self.user_id,
+            category=self.category
+        ).all()
+        return sum(expense.amount for expense in expenses_for_budget) if expenses_for_budget else 0.0
+
     @property
-    def savings(self):
-        return self.limit - self.current_spent
-
-
+    def savings(self):  # ✅ Automatically computes savings
+        return self.limit - self.spent
 
 
 class TokenBlocklist(db.Model):

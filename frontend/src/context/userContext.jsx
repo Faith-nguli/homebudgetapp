@@ -1,6 +1,7 @@
-import React, { createContext, useState, useEffect } from "react";
+import React, { createContext, useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+
 
 const defaultUserContext = {
   current_user: null,
@@ -9,6 +10,7 @@ const defaultUserContext = {
   addUser: async () => {},
   updateUser: async () => {},
   deleteUser: async () => {},
+  loading: true,
 };
 
 export const UserContext = createContext(defaultUserContext);
@@ -17,13 +19,18 @@ export const UserProvider = ({ children }) => {
   const navigate = useNavigate();
   const [authToken, setAuthToken] = useState(() => localStorage.getItem("token"));
   const [current_user, setCurrentUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // 🔹 FETCH CURRENT USER
-  const fetchCurrentUser = async (token) => {
-    if (!token) return;
+  const fetchCurrentUser = useCallback(async (token) => {
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
 
     try {
-      const res = await fetch("https://homebudgetapp-1.onrender.com/user", {
+      const res = await fetch("http://127.0.0.1:5000/user", {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -32,7 +39,7 @@ export const UserProvider = ({ children }) => {
 
       if (!res.ok) {
         if (res.status === 401) {
-          console.warn("Unauthorized: Token expired or invalid");
+          toast.error("Session expired. Please log in again.");
           logout();
           return;
         }
@@ -43,19 +50,32 @@ export const UserProvider = ({ children }) => {
       setCurrentUser(data);
     } catch (error) {
       console.error("Error fetching user:", error.message);
+      toast.error("Failed to fetch user details. Please log in again.");
+      logout();
+    } finally {
+      setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    if (authToken) fetchCurrentUser(authToken);
-  }, [authToken]);
+    if (authToken) {
+      fetchCurrentUser(authToken);
+    } else {
+      setLoading(false);
+      logout();
+    }
+  }, [authToken, fetchCurrentUser]);
 
-  // 🔹 LOGIN
   const login = async (email, password) => {
+    if (!email || !password) {
+      toast.error("Please enter both email and password");
+      return;
+    }
+
     const toastId = toast.loading("Logging in...");
 
     try {
-      const response = await fetch("https://homebudgetapp-1.onrender.com/login", {
+      const response = await fetch("http://127.0.0.1:5000/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -63,89 +83,94 @@ export const UserProvider = ({ children }) => {
 
       const responseData = await response.json();
 
-      if (!response.ok || !responseData.token) {
-        throw new Error(responseData.error || "Login failed");
+      if (!response.ok || responseData.status !== "success") {
+        throw new Error(responseData.message || "Invalid email or password");
       }
 
-      // Store token and fetch user
-      localStorage.setItem("token", responseData.token);
-      setAuthToken(responseData.token);
-      fetchCurrentUser(responseData.token);
+      localStorage.setItem("token", responseData.data.access_token);
+      setAuthToken(responseData.data.access_token);
+      await fetchCurrentUser(responseData.data.access_token);
 
-      toast.update(toastId, { render: "Login successful!", type: "success", isLoading: false, autoClose: 2000 });
+      toast.update(toastId, {
+        render: "Login successful!",
+        type: "success",
+        isLoading: false,
+        autoClose: 2000,
+      });
+
       setTimeout(() => navigate("/dashboard"), 500);
     } catch (error) {
-      toast.update(toastId, { render: error.message || "Login failed", type: "error", isLoading: false, autoClose: 3000 });
-      console.error("Login error:", error);
+      toast.update(toastId, {
+        render: error.message || "Login failed",
+        type: "error",
+        isLoading: false,
+        autoClose: 3000,
+      });
+      console.error("Login error:", error.message);
     }
   };
 
-  // 🔹 LOGOUT
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem("token");
     setAuthToken(null);
     setCurrentUser(null);
     toast.info("Logged out successfully");
-    setTimeout(() => navigate("/login"), 500);
-  };
+    navigate("/login");
+  }, [navigate]);
 
-  // 🔹 REGISTER USER
   const addUser = async (username, email, password) => {
     const toastId = toast.loading("Registering...");
 
     try {
-        const response = await fetch("https://homebudgetapp-1.onrender.com/user", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                username: username.trim(),
-                email: email.trim().toLowerCase(),
-                password,
-            }),
-        });
+      const response = await fetch("http://127.0.0.1:5000/user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: username.trim(),
+          email: email.trim().toLowerCase(),
+          password,
+        }),
+      });
 
-        const responseData = await response.json();
-        console.log("🔍 Full server response:", responseData); // Debugging
+      const responseData = await response.json();
+      console.log("Backend Response:", responseData); // Debugging log
 
-        if (!response.ok) {
-            throw new Error(responseData.error || "Registration failed");
-        }
+      if (!response.ok) {
+        throw new Error(responseData.error || "Registration failed");
+      }
 
-        // ✅ Ensure data & access token exist
-        const token = responseData?.data?.access_token;
-        if (!token) {
-            throw new Error("No access token received");
-        }
+      // ✅ Extract token correctly
+      const token = responseData?.data?.access_token;
+      if (!token) {
+        console.error("No access token received:", responseData); // Debugging log
+        throw new Error("No access token received");
+      }
 
-        // ✅ Store token and update authentication state
-        localStorage.setItem("token", token);  // Use localStorage for persistent login
-        setAuthToken(token);
-        fetchCurrentUser(token);
+      localStorage.setItem("token", token);
+      setAuthToken(token);
+      fetchCurrentUser(token);
 
-        toast.update(toastId, {
-            render: "Registration successful!",
-            type: "success",
-            isLoading: false,
-            autoClose: 2000,
-        });
+      toast.update(toastId, {
+        render: "Registration successful!",
+        type: "success",
+        isLoading: false,
+        autoClose: 2000,
+      });
 
-        setTimeout(() => navigate("/dashboard"), 500);
+      setTimeout(() => navigate("/dashboard"), 500);
     } catch (error) {
-        console.error("❌ Registration error:", error);
-        
-        toast.update(toastId, {
-            render: error.message || "Registration failed",
-            type: "error",
-            isLoading: false,
-            autoClose: 3000,
-        });
+      console.error("Registration error:", error);
+      toast.update(toastId, {
+        render: error.message || "Registration failed",
+        type: "error",
+        isLoading: false,
+        autoClose: 3000,
+      });
     }
-};
+  };
 
 
 
-
-  // 🔹 UPDATE USER
   const updateUser = async (user_id, updatedInfo) => {
     if (!authToken) {
       toast.error("Unauthorized! Please log in again.");
@@ -153,7 +178,7 @@ export const UserProvider = ({ children }) => {
     }
 
     try {
-      const res = await fetch(`https://homebudgetapp-1.onrender.com/user/${user_id}`, {
+      const res = await fetch(`http://127.0.0.1:5000/user/${user_id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -176,7 +201,6 @@ export const UserProvider = ({ children }) => {
     }
   };
 
-  // 🔹 DELETE USER
   const deleteUser = async (user_id) => {
     if (!authToken) {
       toast.error("Unauthorized! Please log in again.");
@@ -184,7 +208,7 @@ export const UserProvider = ({ children }) => {
     }
 
     try {
-      const res = await fetch(`https://homebudgetapp-1.onrender.com/user/${user_id}`, {
+      const res = await fetch(`http://127.0.0.1:5000/user/${user_id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${authToken}` },
       });
@@ -203,7 +227,17 @@ export const UserProvider = ({ children }) => {
   };
 
   return (
-    <UserContext.Provider value={{ current_user, setUser: setCurrentUser, login, logout, addUser, updateUser, deleteUser }}>
+    <UserContext.Provider
+      value={{
+        current_user,
+        login,
+        logout,
+        addUser,
+        updateUser,
+        deleteUser,
+        loading,
+      }}
+    >
       {children}
     </UserContext.Provider>
   );

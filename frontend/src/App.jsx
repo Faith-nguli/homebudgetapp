@@ -13,7 +13,7 @@ import Dashboard from './components/Dashboard';
 import BudgetDetail from './components/BudgetDetail';
 import ExpenseDetail from './components/ExpenseDetail';
 import AddBudget from './pages/AddBudget';
-// import CategoryDetails from './pages/CategoryDetails';
+import AddExpense from './pages/AddExpense';
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -37,7 +37,7 @@ function App() {
                 <Route path="budget-detail/:budget_id" element={<BudgetDetail />} />
                 <Route path="expense-detail/:id" element={<ExpenseDetail />} />
                 <Route path="add-budget" element={<AddBudget />} />  
-                {/* <Route path="category-detail/:id" element={<CategoryDetails />} /> */}
+                <Route path="add-expense" element={<AddExpense />} />
 
                 <Route path="*" element={<NotFound />} />
               </Route>

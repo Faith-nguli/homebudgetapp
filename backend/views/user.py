@@ -8,87 +8,86 @@ from models import db, User, TokenBlocklist
 
 user_bp = Blueprint("user_bp", __name__)
 
-@user_bp.route("/user", methods=['POST'])
-def create_user():
-    try:
-        data = request.get_json()
-        username = data.get('username')
-        email = data.get('email')
-        password = data.get('password')
+# @user_bp.route("/user", methods=['POST'])
+# def create_user():
+#     try:
+#         data = request.get_json()
+#         username = data.get('username')
+#         email = data.get('email')
+#         password = data.get('password')
 
-        # ✅ Validate required fields
-        if not username or not email or not password:
-            return jsonify({"success": False, "error": "Missing required fields"}), 400
+#         # ✅ Validate required fields
+#         if not username or not email or not password:
+#             return jsonify({"success": False, "error": "Missing required fields"}), 400
 
-        # ✅ Check if user already exists
-        if User.query.filter_by(username=username).first():
-            return jsonify({"success": False, "error": "Username already exists"}), 400
-        if User.query.filter_by(email=email).first():
-            return jsonify({"success": False, "error": "Email already exists"}), 400
+#         # ✅ Check if user already exists
+#         if User.query.filter_by(username=username).first():
+#             return jsonify({"success": False, "error": "Username already exists"}), 400
+#         if User.query.filter_by(email=email).first():
+#             return jsonify({"success": False, "error": "Email already exists"}), 400
 
-        # ✅ Password validation
-        if len(password) < 8:
-            return jsonify({"success": False, "error": "Password must be at least 8 characters long"}), 400
+#         # ✅ Password validation
+#         if len(password) < 8:
+#             return jsonify({"success": False, "error": "Password must be at least 8 characters long"}), 400
 
-        # ✅ Hash password and create user
-        hashed_password = generate_password_hash(password)
-        new_user = User(username=username, email=email, password=hashed_password)
+#         # ✅ Hash password and create user
+#         hashed_password = generate_password_hash(password)
+#         new_user = User(username=username, email=email, password=hashed_password)
 
-        db.session.add(new_user)
-        db.session.commit()
+#         db.session.add(new_user)
+#         db.session.commit()
 
-        # ✅ Generate access token
-        access_token = create_access_token(identity=new_user.id)
+        
 
-        return jsonify({
-            "success": True,
-            "message": "Registration successful!",
-            "data": {
-                "user": {
-                    "id": new_user.id,
-                    "username": new_user.username,
-                    "email": new_user.email
-                },
-                "access_token": access_token
-            }
-        }), 201
+#         return jsonify({
+#             "success": True,
+#             "message": "Registration successful!",
+#             "data": {
+#                 "user": {
+#                     "id": new_user.id,
+#                     "username": new_user.username,
+#                     "email": new_user.email
+#                 },
+              
+#             }
+#         }), 201
 
-    except Exception as e:
-        db.session.rollback()
-        print(f"❌ Registration error: {traceback.format_exc()}")  # Logs full error traceback
-        return jsonify({"success": False, "error": "Registration failed. Please try again."}), 500
+#     except Exception as e:
+#         db.session.rollback()
+#         print(f"❌ Registration error: {traceback.format_exc()}")  # Logs full error traceback
+#         return jsonify({"success": False, "error": "Registration failed. Please try again."}), 500
 
 
-@user_bp.route("/login", methods=["POST"])
-def login():
-    data = request.get_json()
-    print("Received login request:", data) 
-    if not data:
-        return jsonify({"status": "error", "message": "Invalid input"}), 400
+# @user_bp.route("/login", methods=["POST"])
+# def login():
+#     data = request.get_json()
+#     print("Received login request:", data) 
+#     if not data:
+#         return jsonify({"status": "error", "message": "Invalid input"}), 400
 
-    email = data.get("email")
-    password = data.get("password")
+#     email = data.get("email")
+#     password = data.get("password")
 
-    if not email or not password:
-        return jsonify({"status": "error", "message": "Email and password are required"}), 400
+#     if not email or not password:
+#         return jsonify({"status": "error", "message": "Email and password are required"}), 400
 
-    user = User.query.filter(User.email.ilike(email)).first()
-    if not user or not check_password_hash(user.password, password):
-        return jsonify({"status": "error", "message": "Invalid email or password"}), 401
+#     user = User.query.filter(User.email.ilike(email)).first()
+#     if not user or not check_password_hash(user.password, password):
+#         return jsonify({"status": "error", "message": "Invalid email or password"}), 401
 
-    access_token = create_access_token(identity=user.id)
-    return jsonify({
-        "status": "success",
-        "message": "Login successful",
-        "data": {
-            "user": {
-                "id": user.id,
-                "username": user.username,
-                "email": user.email
-            },
-            "access_token": access_token
-        }
-    }), 200
+#     access_token = create_access_token(identity=user.id)
+#     return jsonify({
+#         "status": "success",
+#         "message": "Login successful",
+#         "data": {
+#             "user": {
+#                 "id": user.id,
+#                 "username": user.username,
+#                 "email": user.email
+#             },
+#             "access_token": access_token
+#         }
+#     }), 200
 
 @user_bp.route("/user", methods=["GET"])
 @jwt_required()
@@ -155,18 +154,18 @@ def update_profile():
         }
     }), 200
 
-@user_bp.route("/logout", methods=["DELETE"])
-@jwt_required()
-def logout():
-    jti = get_jwt().get("jti")
-    if not jti:
-        return jsonify({"status": "error", "message": "Token invalid"}), 400
+# @user_bp.route("/logout", methods=["DELETE"])
+# @jwt_required()
+# def logout():
+#     jti = get_jwt().get("jti")
+#     if not jti:
+#         return jsonify({"status": "error", "message": "Token invalid"}), 400
 
-    now = datetime.now(timezone.utc)
-    db.session.add(TokenBlocklist(jti=jti, created_at=now))
-    db.session.commit()
+#     now = datetime.now(timezone.utc)
+#     db.session.add(TokenBlocklist(jti=jti, created_at=now))
+#     db.session.commit()
 
-    return jsonify({"status": "success", "message": "Logged out successfully"}), 200
+#     return jsonify({"status": "success", "message": "Logged out successfully"}), 200
 
 @user_bp.route("/user", methods=["DELETE"])
 @jwt_required()

@@ -1,9 +1,11 @@
+import traceback
 from datetime import datetime
 from flask import Blueprint, request, jsonify
 from werkzeug.security import check_password_hash, generate_password_hash
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from flask_mail import Message
 from models import User, db, TokenBlocklist
+from datetime import timedelta
 
 auth_bp = Blueprint("auth_bp", __name__)
 
@@ -15,29 +17,29 @@ def create_user():
         email = data.get('email')
         password = data.get('password')
 
-        #  Validate required fields
         if not username or not email or not password:
             return jsonify({"success": False, "error": "Missing required fields"}), 400
 
-        # Check if user already exists
         if User.query.filter_by(username=username).first():
             return jsonify({"success": False, "error": "Username already exists"}), 400
         if User.query.filter_by(email=email).first():
             return jsonify({"success": False, "error": "Email already exists"}), 400
 
-        # Password validation
         if len(password) < 8:
             return jsonify({"success": False, "error": "Password must be at least 8 characters long"}), 400
 
-        # Hash password and create user
         hashed_password = generate_password_hash(password)
         new_user = User(username=username, email=email, password=hashed_password)
 
         db.session.add(new_user)
         db.session.commit()
 
-        # Generate access token
-        access_token = create_access_token(identity=new_user.id)
+        # ✅ FIX JWT TOKEN GENERATION
+        try:
+            access_token = create_access_token(identity=new_user.id, expires_delta=timedelta(days=1))
+        except Exception as token_error:
+            print("❌ Error generating access token:", token_error)
+            return jsonify({"success": False, "error": "Failed to generate access token"}), 500
 
         return jsonify({
             "success": True,
@@ -48,15 +50,14 @@ def create_user():
                     "username": new_user.username,
                     "email": new_user.email
                 },
-                "access_token": access_token
+                "access_token": access_token  # ✅ Ensure token is included in response
             }
         }), 201
 
     except Exception as e:
         db.session.rollback()
-        print(f"❌ Registration error: {traceback.format_exc()}")  # Logs full error traceback
+        print(f"❌ Registration error: {traceback.format_exc()}")
         return jsonify({"success": False, "error": "Registration failed. Please try again."}), 500
-
 
 @auth_bp.route("/login", methods=["POST"])
 def login():

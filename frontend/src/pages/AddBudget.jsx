@@ -1,75 +1,59 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-
-const API_BASE_URL = "https://homebudgetapp-1.onrender.com";
 
 const AddBudget = () => {
   const navigate = useNavigate();
   const [budget, setBudget] = useState({
     category: "",
-    amount: "",
     limit: "",
-    image: "",
-    savings: 0,
+    spent: "",
+    saving: 0,
   });
+
+  // Calculate savings whenever limit or spent changes
+  useEffect(() => {
+    const limitValue = parseFloat(budget.limit) || 0;
+    const spentValue = parseFloat(budget.spent) || 0;
+    const newSaving = Math.max(limitValue - spentValue, 0); // Prevent negative savings
+
+    setBudget((prev) => ({
+      ...prev,
+      saving: newSaving, // Ensure savings is correctly updated
+    }));
+  }, [budget.limit, budget.spent]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setBudget((prev) => {
-      const updatedBudget = { ...prev, [name]: value };
-      if (name === "amount" || name === "limit") {
-        updatedBudget.savings = Math.max(
-          parseFloat(updatedBudget.limit || 0) - parseFloat(updatedBudget.amount || 0),
-          0
-        );
-      }
-      return updatedBudget;
-    });
-  };
-
-  const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const token = localStorage.getItem("token");
-    if (!token) return navigate("/login");
-
-    const formData = new FormData();
-    formData.append("image", file);
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/budgets/upload`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
-      const data = await response.json();
-      if (response.ok) {
-        setBudget((prev) => ({ ...prev, image: data.image_url }));
-      } else {
-        alert("Image upload failed: " + (data.error || "Unknown error"));
-      }
-    } catch (error) {
-      console.error("Error uploading image:", error);
-    }
+    setBudget((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!budget.category) return alert("Please select a category");
 
+    const limitValue = parseFloat(budget.limit) || 0;
+    const spentValue = parseFloat(budget.spent) || 0;
+
+    if (spentValue > limitValue) {
+      return alert("Spent amount cannot be greater than the budget limit.");
+    }
+
     const token = localStorage.getItem("token");
     if (!token) return navigate("/login");
 
+    // Prepare the budget data
     const budgetData = {
       category: budget.category,
-      limit: parseFloat(budget.limit) || 0,
-      amount: parseFloat(budget.amount) || 0,
-      image_url: budget.image || null,
+      limit: limitValue,
+      spent: spentValue,
+      saving: budget.saving, // This is now correctly calculated
     };
 
     try {
-      const response = await fetch(`${API_BASE_URL}/budgets`, {
+      const response = await fetch("http://127.0.0.1:5000/budgets", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -77,12 +61,18 @@ const AddBudget = () => {
         },
         body: JSON.stringify(budgetData),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Failed to add budget");
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        throw new Error(responseData.error || "Failed to add budget");
+      }
+
+      alert("Budget added successfully!");
       navigate("/dashboard");
     } catch (error) {
       console.error("Error submitting budget:", error);
-      alert(error.message);
+      alert(error.message || "Failed to add budget. Please try again.");
     }
   };
 
@@ -92,7 +82,12 @@ const AddBudget = () => {
       <form onSubmit={handleSubmit}>
         <div className="form-group">
           <label>Category</label>
-          <select name="category" value={budget.category} onChange={handleChange} required>
+          <select
+            name="category"
+            value={budget.category}
+            onChange={handleChange}
+            required
+          >
             <option value="">Select Category</option>
             <option value="food">Food</option>
             <option value="transport">Transport</option>
@@ -101,22 +96,42 @@ const AddBudget = () => {
           </select>
         </div>
         <div className="form-group">
-          <label>Amount</label>
-          <input type="number" name="amount" value={budget.amount} onChange={handleChange} min="0" step="0.01" required />
-        </div>
-        <div className="form-group">
           <label>Limit</label>
-          <input type="number" name="limit" value={budget.limit} onChange={handleChange} min="0" step="0.01" required />
+          <input
+            type="number"
+            name="limit"
+            value={budget.limit}
+            onChange={handleChange}
+            min="0"
+            step="0.01"
+            required
+          />
         </div>
         <div className="form-group">
-          <label>Image</label>
-          <input type="file" accept="image/*" onChange={handleFileUpload} />
+          <label>Spent</label>
+          <input
+            type="number"
+            name="spent"
+            value={budget.spent}
+            onChange={handleChange}
+            min="0"
+            step="0.01"
+            required
+          />
         </div>
         <div className="form-group">
-          <label>Savings</label>
-          <input type="number" value={budget.savings} readOnly />
+          <label>Saving</label>
+          <input
+            type="number"
+            name="saving"
+            value={budget.saving}
+            readOnly
+            className="read-only"
+          />
         </div>
-        <button type="submit" className="submit-btn">Add Budget</button>
+        <button type="submit" className="submit-btn">
+          Add Budget
+        </button>
       </form>
     </div>
   );

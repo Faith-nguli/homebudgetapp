@@ -1,127 +1,119 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
-import jwtDecode from "jwt-decode";
 import Button from "../components/Button";
-import ExpenseCard from "../components/ExpenseCard";
 import { toast } from "react-toastify";
-
+import { UserContext } from "../context/userContext";
+import { ExpenseContext } from "../context/ExpenseContext";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { current_user, logout, loading: userLoading } = useContext(UserContext);
+  const { expenses } = useContext(ExpenseContext);
+
   const [currentTime, setCurrentTime] = useState(new Date());
   const [budgets, setBudgets] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [budgetLoading, setBudgetLoading] = useState(true);
   const [error, setError] = useState(null);
   const [editingBudget, setEditingBudget] = useState(null);
+  const [totalSavings, setTotalSavings] = useState(0);
 
-  // Fetch budgets from the server
-  const fetchBudgets = async () => {
+  // Function to calculate savings (limit - spent)
+  const calculateSavings = (budget) => budget.limit - (budget.spent || 0);
+
+  // Function to fetch budgets
+  const fetchBudgets = async (userId) => {
+    setBudgetLoading(true);
+    setError(null);
+
     try {
       const token = localStorage.getItem("token");
-      if (!token) {
-        throw new Error("Authentication token is missing. Please log in again.");
+      if (!token || !userId) {
+        toast.error("Authentication data is missing. Please log in again.");
+        navigate("/login");
+        return;
       }
-  
-      console.log("Using token:", token); // Debugging
-  
-      const response = await fetch("https://homebudgetapp-1.onrender.com/budgets", {
+
+      const response = await fetch("http://127.0.0.1:5000/budgets", {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       });
-  
+
       if (response.status === 401) {
-        console.error("Unauthorized. Clearing token and redirecting to login.");
-        localStorage.removeItem("token");
-        window.location.href = "/login"; // Redirect to login page
+        toast.error("Session expired. Please log in again.");
+        logout();
+        navigate("/login");
         return;
       }
-  
+
       if (!response.ok) {
-        throw new Error("Failed to fetch budgets");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to fetch budgets");
       }
-  
+
       const data = await response.json();
-      return data;
+
+      if (!Array.isArray(data)) {
+        throw new Error("Invalid data format received from API.");
+      }
+
+      // Calculate savings for each budget
+      const updatedBudgets = data.map((budget) => ({
+        ...budget,
+        saving: calculateSavings(budget),
+      }));
+
+      // Calculate total savings
+      setTotalSavings(updatedBudgets.reduce((total, budget) => total + budget.saving, 0));
+      setBudgets(updatedBudgets);
     } catch (error) {
-      console.error("Fetch budgets error:", error);
-      alert(error.message);
-      return null;
+      console.error("Fetch Budgets Error:", error);
+      toast.error(error.message || "Failed to fetch budgets. Please try again.");
+      setError(error.message);
+    } finally {
+      setBudgetLoading(false);
     }
   };
-  
 
-  // Fetch budgets on component mount
-  useEffect(() => {
-    fetchBudgets();
-  }, []);
+  const saveBudget = async () => {
+    if (!editingBudget) return;
 
-  // Update current time every second
-  useEffect(() => {
-    const interval = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-
-  const fetchBudgetById = async (budgetId) => {
     try {
-      const navigate = useNavigate();
       const token = localStorage.getItem("token");
-  
-      if (!token) {
-        throw new Error("No token found. Please log in.");
-      }
-  
-      console.log("Token being sent:", token); // Debugging
-  
-      const response = await fetch(
-        `https://homebudgetapp-1.onrender.com/budgets/${budgetId}`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-  
-      if (response.status === 401) {
-        console.error("Unauthorized access. Redirecting to login.");
-        localStorage.removeItem("token");
-        navigate("/login");
-        return null;
-      }
-  
-      if (response.status === 403) {
-        throw new Error("You are not authorized to access this budget.");
-      }
-  
-      if (response.status === 404) {
-        throw new Error("Budget not found.");
-      }
-  
+      const response = await fetch(`http://127.0.0.1:5000/budgets/${editingBudget.id}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          category: editingBudget.category,
+          limit: editingBudget.limit,
+          spent: editingBudget.spent || 0,
+        }),
+      });
+
       if (!response.ok) {
-        throw new Error("Failed to fetch budget.");
+        throw new Error("Failed to update budget.");
       }
-  
-      const data = await response.json();
-      return data;
+
+      toast.success("Budget updated successfully!");
+      setEditingBudget(null);
+      fetchBudgets(current_user.data.id);
     } catch (error) {
-      console.error("Fetch single budget error:", error);
-      toast.error(error.message);
-      return null;
+      console.error("Save Budget Error:", error);
+      toast.error(error.message || "Failed to update budget. Please try again.");
     }
   };
 
-  // Handle budget deletion
-  const handleDelete = async (budgetId) => {
+  const deleteBudget = async (budgetId) => {
     if (!window.confirm("Are you sure you want to delete this budget?")) return;
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`https://homebudgetapp-1.onrender.com/budgets/${budgetId}`, {
+      const response = await fetch(`http://127.0.0.1:5000/budgets/${budgetId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -129,109 +121,79 @@ const Dashboard = () => {
         },
       });
 
-      if (!response.ok) throw new Error("Failed to delete budget");
-
-      setBudgets((prev) => prev.filter((budget) => budget.id !== budgetId));
-      alert("Budget deleted successfully!");
-    } catch (error) {
-      console.error("Delete error:", error);
-      alert(`Error deleting budget: ${error.message}`);
-    }
-  };
-
-  // Handle budget edit
-  const handleEdit = (budget) => {
-    setEditingBudget({ ...budget });
-  };
-
-  // Save edited budget
-  const handleSaveEdit = async () => {
-    if (!editingBudget || !editingBudget.id) {
-      alert("Invalid budget data");
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) throw new Error("User is not authenticated");
-
-      const updatedData = {
-        category: editingBudget.category,
-        limit: parseFloat(editingBudget.limit),
-        current_spent: parseFloat(editingBudget.current_spent || 0),
-        savings: parseFloat(editingBudget.savings || 0),
-        image_url: editingBudget.image_url || null,
-      };
-
-      const updateResponse = await fetch(
-        `https://homebudgetapp-1.onrender.com/budgets/${editingBudget.id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(updatedData),
-        }
-      );
-
-      if (!updateResponse.ok) {
-        throw new Error("Failed to update budget");
+      if (!response.ok) {
+        throw new Error("Failed to delete budget.");
       }
 
-      fetchBudgets(); // Refresh the list after updating
-      setEditingBudget(null);
-      alert("Budget updated successfully!");
+      toast.success("Budget deleted successfully!");
+      setBudgets((prev) => prev.filter((budget) => budget.id !== budgetId));
+      setTotalSavings((prev) => prev - (budgets.find((b) => b.id === budgetId)?.saving || 0));
     } catch (error) {
-      console.error("Update error:", error);
-      alert(`Error updating budget: ${error.message}`);
+      console.error("Delete Budget Error:", error);
+      toast.error(error.message || "Failed to delete budget. Please try again.");
     }
   };
 
-  // Calculate totals
-  const totalExpenses = budgets.reduce((sum, budget) => sum + (budget.current_spent || 0), 0);
-  const totalLimit = budgets.reduce((sum, budget) => sum + (budget.limit || 0), 0);
-  const totalSavings = budgets.reduce((sum, budget) => sum + (budget.savings || 0), 0);
+  const getTotalExpenses = () => {
+    return expenses.reduce((total, expense) => total + parseFloat(expense.amount), 0);
+  };
+
+  useEffect(() => {
+    if (!userLoading && !current_user) {
+      navigate("/login");
+    }
+  }, [current_user, userLoading, navigate]);
+
+  useEffect(() => {
+    if (current_user && current_user.data) {
+      fetchBudgets(current_user.data.id);
+    }
+    const interval = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(interval);
+  }, [current_user]);
 
   return (
     <div className="dashboard">
       <div className="dashboard-header">
-        <h1 className="dashboard-title">Dashboard</h1>
-        <div className="current-time">Current Time: {currentTime.toLocaleTimeString()}</div>
-        <div className="button-group">
+        <h1>Dashboard</h1>
+        <p>Current Time: {currentTime.toLocaleTimeString()}</p>
+        <div className="financial-summary">
+          <h3>Total Savings: KES {totalSavings.toFixed(2)}</h3>
+          <h3>Total Expenses: KES {getTotalExpenses().toFixed(2)}</h3>
+        </div>
+        <div>
           <Button onClick={() => navigate("/add-budget")}>Add Budget</Button>
+          <Button onClick={() => navigate("/add-expense")}>Add Expense</Button>
           <Button onClick={() => navigate("/profile")}>Profile</Button>
-          <Button onClick={() => navigate("/logout")}>Logout</Button>
+          <Button onClick={logout}>Logout</Button>
         </div>
       </div>
 
-      {loading ? (
-        <p className="loading-message">Loading budgets...</p>
+      {userLoading ? (
+        <p>Loading user data...</p>
+      ) : budgetLoading ? (
+        <p>Loading budgets...</p>
       ) : error ? (
-        <p className="error-message">Error: {error}</p>
+        <p>Error: {error}</p>
       ) : budgets.length === 0 ? (
-        <p className="empty-message">No budgets added yet.</p>
+        <p>No budgets added yet.</p>
       ) : (
-        <div className="budget-grid">
+        <div className="budget-list">
           {budgets.map((budget) => (
-            <ExpenseCard
-              key={budget.id}
-              category={budget.category}
-              spent={budget.current_spent}
-              limit={budget.limit}
-              onEdit={() => handleEdit(budget)}
-              onDelete={() => handleDelete(budget.id)}
-            />
+            <div key={budget.id} className="budget-item">
+              <h3>{budget.category}</h3>
+              <p>Limit: KES {budget.limit ? budget.limit.toLocaleString() : "0"}</p>
+              <p className={`saving ${budget.saving < 0 ? "negative" : ""}`}>
+                Savings: KES {budget.saving.toFixed(2)}
+              </p>
+              <div>
+                <Button onClick={() => setEditingBudget(budget)}>Edit</Button>
+                <Button onClick={() => deleteBudget(budget.id)}>Delete</Button>
+              </div>
+            </div>
           ))}
         </div>
       )}
-
-      <div className="summary">
-        <h2>Your Financial Summary</h2>
-        <p>Total Expenses: KES {totalExpenses.toLocaleString()}</p>
-        <p>Total Limit: KES {totalLimit.toLocaleString()}</p>
-        <p>Total Savings: KES {totalSavings.toLocaleString()}</p>
-      </div>
 
       {editingBudget && (
         <div className="edit-modal">
@@ -240,27 +202,24 @@ const Dashboard = () => {
           <input
             type="text"
             value={editingBudget.category}
-            onChange={(e) => setEditingBudget({ ...editingBudget, category: e.target.value })}
+            onChange={(e) =>
+              setEditingBudget({ ...editingBudget, category: e.target.value })
+            }
           />
           <label>Limit (KES):</label>
           <input
             type="number"
             value={editingBudget.limit}
-            onChange={(e) => setEditingBudget({ ...editingBudget, limit: e.target.value })}
+            onChange={(e) =>
+              setEditingBudget({
+                ...editingBudget,
+                limit: Number(e.target.value),
+                saving: calculateSavings({ ...editingBudget, limit: Number(e.target.value) }),
+              })
+            }
           />
-          <label>Current Spent (KES):</label>
-          <input
-            type="number"
-            value={editingBudget.current_spent}
-            onChange={(e) => setEditingBudget({ ...editingBudget, current_spent: e.target.value })}
-          />
-          <label>Savings (KES):</label>
-          <input
-            type="number"
-            value={editingBudget.savings}
-            onChange={(e) => setEditingBudget({ ...editingBudget, savings: e.target.value })}
-          />
-          <Button onClick={handleSaveEdit}>Save</Button>
+          <p>Current Savings: KES {editingBudget.saving.toLocaleString()}</p>
+          <Button onClick={saveBudget}>Save</Button>
           <Button onClick={() => setEditingBudget(null)}>Cancel</Button>
         </div>
       )}
