@@ -10,8 +10,7 @@ import Profile from './pages/Profile';
 import NotFound from "./pages/NotFoundPage";
 import Login from './pages/Login';
 import Dashboard from './components/Dashboard';
-import BudgetDetail from './components/BudgetDetail';
-import ExpenseDetail from './components/ExpenseDetail';
+
 import AddBudget from './pages/AddBudget';
 import AddExpense from './pages/AddExpense';
 import { ToastContainer } from "react-toastify";
@@ -34,8 +33,6 @@ function App() {
                 <Route path="profile" element={<Profile />} />
                 <Route path="login" element={<Login />} />
                 <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="budget-detail/:budget_id" element={<BudgetDetail />} />
-                <Route path="expense-detail/:id" element={<ExpenseDetail />} />
                 <Route path="add-budget" element={<AddBudget />} />  
                 <Route path="add-expense" element={<AddExpense />} />
 
